@@ -21,7 +21,7 @@ class PlanfixService:
         }
         
         # XML API
-        self.xml_api_url = "https://megamindru.planfix.ru/xml/"
+        self.xml_api_url = "https://apiru.planfix.ru/xml/"  # RU сервер для XML API
         self.xml_api_key = "f6d50e651c89858b9bad67a482b3ad64"
         self.xml_token = "a2356ad9e5949d6db8b15919f5fe5758"
         self.account = "megamindru"
