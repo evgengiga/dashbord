@@ -97,7 +97,8 @@ class PlanfixService:
                     primary_email = user.find('email').text if user.find('email') is not None else ""
                     login = user.find('login').text if user.find('login') is not None else ""
 
-                    full_name_parts = [surname, name, patronymic]
+                    # В БД нужен формат: Имя Фамилия Отчество (а не Фамилия Имя Отчество)
+                    full_name_parts = [name, surname, patronymic]
                     full_name = " ".join([p for p in full_name_parts if p]) or login or primary_email or email
 
                     return uid, surname, name, patronymic, full_name, primary_email, login
