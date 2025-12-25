@@ -35,11 +35,16 @@ class DashboardService:
                 "columns": list(conversions[0].keys()) if conversions else []
             })
         
-        # Добавьте здесь другие запросы по аналогии
-        # 2. Пример для будущих дашбордов:
-        # preparation_time = self._get_preparation_time_data(user_full_name)
-        # if preparation_time:
-        #     dashboard_items.append({...})
+        # 2. Конверсии КП в производство
+        production_conversions = self._get_production_conversions_data(user_full_name, fiscal_year)
+        if production_conversions:
+            dashboard_items.append({
+                "id": "production_conversions",
+                "title": "Конверсии КП в производство",
+                "description": "Показатели конверсии коммерческих предложений в производство по периодам",
+                "data": production_conversions,
+                "columns": list(production_conversions[0].keys()) if production_conversions else []
+            })
         
         return dashboard_items
     
@@ -236,6 +241,203 @@ class DashboardService:
             return result
         except Exception as e:
             print(f"Error executing conversions query: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    def _get_production_conversions_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
+        """
+        Получает данные по конверсиям КП в производство для пользователя за разные периоды
+        
+        Args:
+            user_full_name: ФИО пользователя
+            fiscal_year: "current" или "previous"
+        """
+        print(f"🔍 Executing production conversions query for user: '{user_full_name}', fiscal year: {fiscal_year}")
+        
+        # Определяем смещение для финансового года
+        year_offset = 0 if fiscal_year == "current" else -1
+        
+        query = f"""
+        WITH user_data AS (
+            -- Текущий квартал
+            SELECT 
+                'Текущий квартал' as "Период",
+                COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
+                COUNT(DISTINCT proizv.task_id) as "Кол-во в производстве",
+                CASE 
+                    WHEN COUNT(DISTINCT proscheti.task_id) = 0 THEN 0
+                    ELSE ROUND(
+                        CAST(COUNT(DISTINCT proizv.task_id) AS NUMERIC) * 100.0 / 
+                        NULLIF(COUNT(DISTINCT proscheti.task_id), 0), 
+                        2
+                    )
+                END as "Конверсия"
+            FROM (
+                SELECT task_id, "user", cp_finish, status FROM proscheti_gr_artema
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                  AND (status = 'Завершенная' OR status = 'КП Согласовано')
+                UNION ALL
+                SELECT task_id, "user", cp_finish, status FROM proscheti_gr_zheni
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                  AND (status = 'Завершенная' OR status = 'КП Согласовано')
+            ) proscheti
+            LEFT JOIN (
+                SELECT task_id, "user", date_create FROM proizv_gr_artema
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT task_id, "user", date_create FROM proizv_gr_zheni
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) proizv ON proscheti."user" = proizv."user"
+            WHERE 
+                proscheti.cp_finish >= DATE_TRUNC('quarter', NOW())
+                AND proscheti.cp_finish < DATE_TRUNC('quarter', NOW() + INTERVAL '3 month')
+                AND (
+                    proizv.date_create IS NULL 
+                    OR (
+                        proizv.date_create >= DATE_TRUNC('quarter', NOW())
+                        AND proizv.date_create < DATE_TRUNC('quarter', NOW() + INTERVAL '3 month')
+                    )
+                )
+            
+            UNION ALL
+            
+            -- Прошлый квартал
+            SELECT 
+                'Прошлый квартал' as "Период",
+                COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
+                COUNT(DISTINCT proizv.task_id) as "Кол-во в производстве",
+                CASE 
+                    WHEN COUNT(DISTINCT proscheti.task_id) = 0 THEN 0
+                    ELSE ROUND(
+                        CAST(COUNT(DISTINCT proizv.task_id) AS NUMERIC) * 100.0 / 
+                        NULLIF(COUNT(DISTINCT proscheti.task_id), 0), 
+                        2
+                    )
+                END as "Конверсия"
+            FROM (
+                SELECT task_id, "user", cp_finish, status FROM proscheti_gr_artema
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                  AND (status = 'Завершенная' OR status = 'КП Согласовано')
+                UNION ALL
+                SELECT task_id, "user", cp_finish, status FROM proscheti_gr_zheni
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                  AND (status = 'Завершенная' OR status = 'КП Согласовано')
+            ) proscheti
+            LEFT JOIN (
+                SELECT task_id, "user", date_create FROM proizv_gr_artema
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT task_id, "user", date_create FROM proizv_gr_zheni
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) proizv ON proscheti."user" = proizv."user"
+            WHERE 
+                proscheti.cp_finish >= DATE_TRUNC('quarter', NOW() - INTERVAL '3 month')
+                AND proscheti.cp_finish < DATE_TRUNC('quarter', NOW())
+                AND (
+                    proizv.date_create IS NULL 
+                    OR (
+                        proizv.date_create >= DATE_TRUNC('quarter', NOW() - INTERVAL '3 month')
+                        AND proizv.date_create < DATE_TRUNC('quarter', NOW())
+                    )
+                )
+            
+            UNION ALL
+            
+            -- Финансовый год (1 марта - 28 февраля) с учетом выбранного года
+            SELECT 
+                'Финансовый год' as "Период",
+                COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
+                COUNT(DISTINCT proizv.task_id) as "Кол-во в производстве",
+                CASE 
+                    WHEN COUNT(DISTINCT proscheti.task_id) = 0 THEN 0
+                    ELSE ROUND(
+                        CAST(COUNT(DISTINCT proizv.task_id) AS NUMERIC) * 100.0 / 
+                        NULLIF(COUNT(DISTINCT proscheti.task_id), 0), 
+                        2
+                    )
+                END as "Конверсия"
+            FROM (
+                SELECT task_id, "user", cp_finish, status FROM proscheti_gr_artema
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                  AND (status = 'Завершенная' OR status = 'КП Согласовано')
+                UNION ALL
+                SELECT task_id, "user", cp_finish, status FROM proscheti_gr_zheni
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                  AND (status = 'Завершенная' OR status = 'КП Согласовано')
+            ) proscheti
+            LEFT JOIN (
+                SELECT task_id, "user", date_create FROM proizv_gr_artema
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT task_id, "user", date_create FROM proizv_gr_zheni
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) proizv ON proscheti."user" = proizv."user"
+            WHERE 
+                proscheti.cp_finish >= 
+                    CASE 
+                        WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                        THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                        ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1 + {year_offset}, 3, 1)
+                    END
+                AND proscheti.cp_finish < 
+                    CASE 
+                        WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                        THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
+                        ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                    END
+                AND (
+                    proizv.date_create IS NULL 
+                    OR (
+                        proizv.date_create >= 
+                            CASE 
+                                WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                                THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                                ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1 + {year_offset}, 3, 1)
+                            END
+                        AND proizv.date_create < 
+                            CASE 
+                                WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                                THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
+                                ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                            END
+                    )
+                )
+        )
+        SELECT 
+            "Период",
+            "Кол-во КП",
+            "Кол-во в производстве",
+            CONCAT("Конверсия", '%') as "Конверсия"
+        FROM user_data
+        ORDER BY 
+            CASE "Период"
+                WHEN 'Текущий квартал' THEN 1
+                WHEN 'Прошлый квартал' THEN 2
+                WHEN 'Финансовый год' THEN 3
+            END
+        """
+        
+        try:
+            result = execute_query(query, {"user_name": user_full_name})
+            print(f"✅ Production query executed, rows returned: {len(result)}")
+            if result:
+                print(f"📊 Sample row: {result[0]}")
+            return result
+        except Exception as e:
+            print(f"Error executing production conversions query: {e}")
             import traceback
             traceback.print_exc()
             return []
