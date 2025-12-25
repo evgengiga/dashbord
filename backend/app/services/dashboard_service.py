@@ -46,6 +46,17 @@ class DashboardService:
                 "columns": list(production_conversions[0].keys()) if production_conversions else []
             })
         
+        # 3. Среднее время согласования КП по месяцам
+        approval_time = self._get_approval_time_data(user_full_name)
+        if approval_time:
+            dashboard_items.append({
+                "id": "approval_time",
+                "title": "Среднее время согласования КП",
+                "description": "Среднее количество дней на согласование КП по месяцам текущего года",
+                "data": approval_time,
+                "columns": list(approval_time[0].keys()) if approval_time else []
+            })
+        
         return dashboard_items
     
     def _get_conversions_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
@@ -438,6 +449,72 @@ class DashboardService:
             return result
         except Exception as e:
             print(f"Error executing production conversions query: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    def _get_approval_time_data(self, user_full_name: str) -> List[Dict]:
+        """
+        Получает среднее время согласования КП по месяцам для пользователя
+        
+        Args:
+            user_full_name: ФИО пользователя
+        """
+        print(f"🔍 Executing approval time query for user: '{user_full_name}'")
+        
+        query = """
+        WITH monthly_data AS (
+            SELECT
+                DATE_TRUNC('month', cp_sogl)::date AS month_date,
+                AVG(serch_sogl_day) AS avg_days
+            FROM (
+                SELECT cp_sogl, serch_sogl_day, "user" FROM proscheti_gr_artema
+                WHERE "user" = :user_name
+                  AND serch_date IS NOT NULL
+                  AND cp_sogl IS NOT NULL
+                  AND (serch_date <> '1970-01-01' OR serch_date IS NULL)
+                  AND (cp_sogl <> '1970-01-01' OR cp_sogl IS NULL)
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT cp_sogl, serch_sogl_day, "user" FROM proscheti_gr_zheni
+                WHERE "user" = :user_name
+                  AND serch_date IS NOT NULL
+                  AND cp_sogl IS NOT NULL
+                  AND (serch_date <> '1970-01-01' OR serch_date IS NULL)
+                  AND (cp_sogl <> '1970-01-01' OR cp_sogl IS NULL)
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) combined
+            WHERE cp_sogl >= DATE_TRUNC('year', NOW())
+              AND cp_sogl < DATE_TRUNC('year', NOW() + INTERVAL '1 year')
+            GROUP BY DATE_TRUNC('month', cp_sogl)::date
+            ORDER BY DATE_TRUNC('month', cp_sogl)::date
+        ),
+        with_changes AS (
+            SELECT
+                month_date,
+                avg_days,
+                LAG(avg_days) OVER (ORDER BY month_date) AS prev_month_avg
+            FROM monthly_data
+        )
+        SELECT
+            TO_CHAR(month_date, 'TMMonth, YYYY') AS "Месяц",
+            ROUND(avg_days::numeric, 1) AS "Среднее время (дней)",
+            CASE
+                WHEN prev_month_avg IS NULL THEN NULL
+                ELSE ROUND((avg_days - prev_month_avg)::numeric, 1)
+            END AS "Изменение"
+        FROM with_changes
+        ORDER BY month_date
+        """
+        
+        try:
+            result = execute_query(query, {"user_name": user_full_name})
+            print(f"✅ Approval time query executed, rows returned: {len(result)}")
+            if result:
+                print(f"📊 Sample row: {result[0]}")
+            return result
+        except Exception as e:
+            print(f"Error executing approval time query: {e}")
             import traceback
             traceback.print_exc()
             return []
