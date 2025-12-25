@@ -56,13 +56,17 @@ export const authAPI = {
  * API для дашборда
  */
 export const dashboardAPI = {
-  getDashboard: async () => {
-    const response = await api.get('/dashboard/')
+  getDashboard: async (fiscalYear = 'current') => {
+    const response = await api.get('/dashboard/', {
+      params: { fiscal_year: fiscalYear }
+    })
     return response.data
   },
   
-  getDashboardItems: async () => {
-    const response = await api.get('/dashboard/items')
+  getDashboardItems: async (fiscalYear = 'current') => {
+    const response = await api.get('/dashboard/items', {
+      params: { fiscal_year: fiscalYear }
+    })
     return response.data
   },
 }

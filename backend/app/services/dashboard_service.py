@@ -8,12 +8,13 @@ from ..core.database import execute_query
 class DashboardService:
     """Сервис для получения данных дашбордов"""
     
-    def get_dashboard_data(self, user_full_name: str) -> List[Dict[str, Any]]:
+    def get_dashboard_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict[str, Any]]:
         """
         Получает все данные дашборда для конкретного пользователя
         
         Args:
             user_full_name: Полное ФИО пользователя
+            fiscal_year: "current" для текущего года, "previous" для прошлого
             
         Returns:
             Список элементов дашборда с данными
@@ -24,7 +25,7 @@ class DashboardService:
         # Пример структуры:
         
         # 1. Конверсии КП в образцы
-        conversions = self._get_conversions_data(user_full_name)
+        conversions = self._get_conversions_data(user_full_name, fiscal_year)
         if conversions:
             dashboard_items.append({
                 "id": "conversions",
@@ -49,16 +50,24 @@ class DashboardService:
         
         return dashboard_items
     
-    def _get_conversions_data(self, user_full_name: str) -> List[Dict]:
+    def _get_conversions_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
         """
         Получает данные по конверсиям КП для пользователя за разные периоды
+        
+        Args:
+            user_full_name: ФИО пользователя
+            fiscal_year: "current" или "previous"
         """
-        query = """
+        print(f"🔍 Executing conversions query for user: '{user_full_name}', fiscal year: {fiscal_year}")
+        
+        # Определяем смещение для финансового года
+        year_offset = 0 if fiscal_year == "current" else -1
+        
+        query = f"""
         WITH user_data AS (
             -- Объединяем данные из обеих таблиц
             SELECT 
                 'Текущий квартал' as "Период",
-                :user_name as "Менеджер",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
                 COUNT(DISTINCT obrazci.task_id) as "Кол-во образцов",
                 CASE 
@@ -99,7 +108,6 @@ class DashboardService:
             -- Прошлый квартал
             SELECT 
                 'Прошлый квартал' as "Период",
-                :user_name as "Менеджер",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
                 COUNT(DISTINCT obrazci.task_id) as "Кол-во образцов",
                 CASE 
@@ -137,10 +145,9 @@ class DashboardService:
             
             UNION ALL
             
-            -- Финансовый год (1 марта текущего года - 28 февраля следующего)
+            -- Финансовый год (1 марта - 28 февраля) с учетом выбранного года
             SELECT 
                 'Финансовый год' as "Период",
-                :user_name as "Менеджер",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
                 COUNT(DISTINCT obrazci.task_id) as "Кол-во образцов",
                 CASE 
@@ -169,14 +176,14 @@ class DashboardService:
                 proscheti.cp_finish >= 
                     CASE 
                         WHEN EXTRACT(MONTH FROM NOW()) >= 3 
-                        THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int, 3, 1)
-                        ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1, 3, 1)
+                        THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                        ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1 + {year_offset}, 3, 1)
                     END
                 AND proscheti.cp_finish < 
                     CASE 
                         WHEN EXTRACT(MONTH FROM NOW()) >= 3 
-                        THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1, 3, 1)
-                        ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int, 3, 1)
+                        THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
+                        ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
                     END
                 AND (
                     obrazci.date_create IS NULL 
@@ -184,14 +191,14 @@ class DashboardService:
                         obrazci.date_create >= 
                             CASE 
                                 WHEN EXTRACT(MONTH FROM NOW()) >= 3 
-                                THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int, 3, 1)
-                                ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1, 3, 1)
+                                THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                                ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1 + {year_offset}, 3, 1)
                             END
                         AND obrazci.date_create < 
                             CASE 
                                 WHEN EXTRACT(MONTH FROM NOW()) >= 3 
-                                THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1, 3, 1)
-                                ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int, 3, 1)
+                                THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
+                                ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
                             END
                     )
                 )
@@ -212,6 +219,9 @@ class DashboardService:
         
         try:
             result = execute_query(query, {"user_name": user_full_name})
+            print(f"✅ Query executed, rows returned: {len(result)}")
+            if result:
+                print(f"📊 Sample row: {result[0]}")
             return result
         except Exception as e:
             print(f"Error executing conversions query: {e}")

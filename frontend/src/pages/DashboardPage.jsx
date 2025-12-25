@@ -7,17 +7,18 @@ function DashboardPage({ token, userInfo, onLogout }) {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [fiscalYear, setFiscalYear] = useState('current') // 'current' or 'previous'
 
   useEffect(() => {
     loadDashboard()
-  }, [])
+  }, [fiscalYear]) // Перезагружаем при смене года
 
   const loadDashboard = async () => {
     setLoading(true)
     setError('')
 
     try {
-      const data = await dashboardAPI.getDashboard()
+      const data = await dashboardAPI.getDashboard(fiscalYear)
       setDashboardData(data)
     } catch (err) {
       console.error('Dashboard load error:', err)
@@ -70,6 +71,27 @@ function DashboardPage({ token, userInfo, onLogout }) {
               <div className="dashboard-welcome">
                 <h2>Привет, {dashboardData.user_name}! 👋</h2>
                 <p>Ваш персонализированный дашборд с аналитикой</p>
+                
+                {/* Выбор финансового года */}
+                <div className="fiscal-year-selector" style={{ marginTop: '20px' }}>
+                  <label style={{ marginRight: '10px', fontWeight: 'bold' }}>
+                    Финансовый год:
+                  </label>
+                  <select 
+                    value={fiscalYear} 
+                    onChange={(e) => setFiscalYear(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #ddd',
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="current">Текущий (март {new Date().getMonth() >= 2 ? new Date().getFullYear() : new Date().getFullYear() - 1} - февраль {new Date().getMonth() >= 2 ? new Date().getFullYear() + 1 : new Date().getFullYear()})</option>
+                    <option value="previous">Прошлый (март {new Date().getMonth() >= 2 ? new Date().getFullYear() - 1 : new Date().getFullYear() - 2} - февраль {new Date().getMonth() >= 2 ? new Date().getFullYear() : new Date().getFullYear() - 1})</option>
+                  </select>
+                </div>
               </div>
 
               <div className="dashboard-grid">

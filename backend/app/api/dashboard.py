@@ -12,16 +12,22 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 
 @router.get("/", response_model=DashboardResponse)
-async def get_dashboard(current_user: dict = Depends(get_current_user_from_token)):
+async def get_dashboard(
+    fiscal_year: str = "current",  # "current" или "previous"
+    current_user: dict = Depends(get_current_user_from_token)
+):
     """
     Получает данные дашборда для текущего пользователя
     
+    Args:
+        fiscal_year: "current" для текущего финансового года, "previous" для прошлого
+        
     Все SQL-запросы автоматически фильтруются по ФИО пользователя
     """
     user_full_name = current_user.get("full_name")
     
     # Получаем данные дашборда
-    dashboard_items = dashboard_service.get_dashboard_data(user_full_name)
+    dashboard_items = dashboard_service.get_dashboard_data(user_full_name, fiscal_year)
     
     return DashboardResponse(
         user_name=user_full_name,
@@ -30,12 +36,15 @@ async def get_dashboard(current_user: dict = Depends(get_current_user_from_token
 
 
 @router.get("/items", response_model=List[DashboardItem])
-async def get_dashboard_items(current_user: dict = Depends(get_current_user_from_token)):
+async def get_dashboard_items(
+    fiscal_year: str = "current",
+    current_user: dict = Depends(get_current_user_from_token)
+):
     """
     Получает только элементы дашборда (без обертки)
     """
     user_full_name = current_user.get("full_name")
-    dashboard_items = dashboard_service.get_dashboard_data(user_full_name)
+    dashboard_items = dashboard_service.get_dashboard_data(user_full_name, fiscal_year)
     return dashboard_items
 
 
