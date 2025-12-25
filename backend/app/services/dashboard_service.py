@@ -68,6 +68,17 @@ class DashboardService:
                 "columns": list(overdue_tasks[0].keys()) if overdue_tasks else []
             })
         
+        # 5. Среднее время принятия производства по месяцам
+        production_acceptance_time = self._get_production_acceptance_time_data(user_full_name, fiscal_year)
+        if production_acceptance_time:
+            dashboard_items.append({
+                "id": "production_acceptance_time",
+                "title": "Среднее время принятия производства",
+                "description": "Среднее количество дней на принятие производства по месяцам финансового года",
+                "data": production_acceptance_time,
+                "columns": list(production_acceptance_time[0].keys()) if production_acceptance_time else []
+            })
+        
         return dashboard_items
     
     def _get_conversions_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
@@ -610,6 +621,80 @@ class DashboardService:
             return result
         except Exception as e:
             print(f"Error executing overdue tasks query: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    def _get_production_acceptance_time_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
+        """
+        Получает среднее время принятия производства по месяцам для пользователя
+        
+        Args:
+            user_full_name: ФИО пользователя
+            fiscal_year: "current" или "previous"
+        """
+        print(f"🔍 Executing production acceptance time query for user: '{user_full_name}', fiscal year: {fiscal_year}")
+        
+        # Определяем смещение для финансового года
+        year_offset = 0 if fiscal_year == "current" else -1
+        
+        query = f"""
+        WITH monthly_data AS (
+            SELECT
+                DATE_TRUNC('month', date_accept)::date AS month_date,
+                AVG(colvo_days_accept) AS avg_days
+            FROM (
+                SELECT date_accept, colvo_days_accept FROM proizv_gr_artema
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                  AND date_accept IS NOT NULL
+                UNION ALL
+                SELECT date_accept, colvo_days_accept FROM proizv_gr_zheni
+                WHERE "user" = :user_name
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                  AND date_accept IS NOT NULL
+            ) combined
+            WHERE date_accept >= 
+                CASE 
+                    WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                    THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                    ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1 + {year_offset}, 3, 1)
+                END
+            AND date_accept < 
+                CASE 
+                    WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                    THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
+                    ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                END
+            GROUP BY DATE_TRUNC('month', date_accept)::date
+            ORDER BY DATE_TRUNC('month', date_accept)::date
+        ),
+        with_changes AS (
+            SELECT
+                month_date,
+                avg_days,
+                LAG(avg_days) OVER (ORDER BY month_date) AS prev_month_avg
+            FROM monthly_data
+        )
+        SELECT
+            TO_CHAR(month_date, 'TMMonth, YYYY') AS "Месяц",
+            ROUND(avg_days::numeric, 1) AS "Среднее время (дней)",
+            CASE
+                WHEN prev_month_avg IS NULL THEN NULL
+                ELSE ROUND((avg_days - prev_month_avg)::numeric, 1)
+            END AS "Изменение"
+        FROM with_changes
+        ORDER BY month_date
+        """
+        
+        try:
+            result = execute_query(query, {"user_name": user_full_name})
+            print(f"✅ Production acceptance time query executed, rows returned: {len(result)}")
+            if result:
+                print(f"📊 Sample row: {result[0]}")
+            return result
+        except Exception as e:
+            print(f"Error executing production acceptance time query: {e}")
             import traceback
             traceback.print_exc()
             return []
