@@ -35,18 +35,11 @@ class DashboardService:
                 "columns": list(conversions[0].keys()) if conversions else []
             })
         
-        # 2. Пример таблицы со средним сроком подготовки
-        preparation_time = self._get_preparation_time_data(user_full_name)
-        if preparation_time:
-            dashboard_items.append({
-                "id": "preparation_time",
-                "title": "Средний срок подготовки КП",
-                "description": "Время подготовки коммерческих предложений по месяцам",
-                "data": preparation_time,
-                "columns": list(preparation_time[0].keys()) if preparation_time else []
-            })
-        
         # Добавьте здесь другие запросы по аналогии
+        # 2. Пример для будущих дашбордов:
+        # preparation_time = self._get_preparation_time_data(user_full_name)
+        # if preparation_time:
+        #     dashboard_items.append({...})
         
         return dashboard_items
     
@@ -59,6 +52,24 @@ class DashboardService:
             fiscal_year: "current" или "previous"
         """
         print(f"🔍 Executing conversions query for user: '{user_full_name}', fiscal year: {fiscal_year}")
+        
+        # Сначала проверяем, какие пользователи есть в БД
+        try:
+            debug_query = """
+            SELECT DISTINCT "user" 
+            FROM (
+                SELECT "user" FROM proscheti_gr_artema
+                UNION
+                SELECT "user" FROM proscheti_gr_zheni
+            ) all_users
+            WHERE "user" IS NOT NULL
+            ORDER BY "user"
+            LIMIT 50
+            """
+            all_users_in_db = execute_query(debug_query, {})
+            print(f"👥 Users found in database tables: {[u['user'] for u in all_users_in_db]}")
+        except Exception as e:
+            print(f"⚠️ Could not fetch users list: {e}")
         
         # Определяем смещение для финансового года
         year_offset = 0 if fiscal_year == "current" else -1

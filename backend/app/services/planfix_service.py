@@ -35,7 +35,14 @@ class PlanfixService:
                     f"{self.base_url}user/list",
                     headers=self.headers,
                     json={
-                        "email": email
+                        "filters": [
+                            {
+                                "type": 1,  # Email filter  
+                                "operator": "equal",
+                                "value": email
+                            }
+                        ],
+                        "fields": "id,name,surname,patronymic,email"
                     },
                     timeout=10.0
                 )
@@ -66,11 +73,24 @@ class PlanfixService:
                         full_name_parts = [surname, name, patronymic]
                         full_name = " ".join([p for p in full_name_parts if p])
                         
-                        # Если ничего нет, берем поле name целиком
+                        # Если ничего нет, пробуем извлечь имя из email
                         if not full_name:
-                            full_name = user.get("name") or user.get("title") or email
+                            full_name = user.get("name") or user.get("title")
+                            
+                            # Если все еще пусто - берем часть email до @
+                            if not full_name:
+                                email_name = email.split("@")[0]
+                                # Пробуем распарсить типичные форматы: firstname.lastname или firstname_lastname
+                                if "." in email_name:
+                                    parts = email_name.split(".")
+                                    full_name = " ".join([p.capitalize() for p in parts if p])
+                                elif "_" in email_name:
+                                    parts = email_name.split("_")
+                                    full_name = " ".join([p.capitalize() for p in parts if p])
+                                else:
+                                    full_name = email_name.capitalize()
                         
-                        print(f"Constructed full name: {full_name}")
+                        print(f"Constructed full name: '{full_name}' (from surname='{surname}', name='{name}', patronymic='{patronymic}')")
                         
                         return {
                             "id": user.get("id"),
