@@ -85,10 +85,10 @@ class PlanfixService:
             Полное ФИО пользователя
         """
         # Пробуем сначала получить готовое полное имя
-        if user_data.get("full_name"):
+        if user_data.get("full_name") and user_data.get("full_name") != "":
             return user_data["full_name"]
         
-        # Или собираем из компонентов
+        # Или собираем из компонентов (surname name patronymic)
         parts = []
         if user_data.get("last_name"):
             parts.append(user_data["last_name"])
@@ -97,7 +97,11 @@ class PlanfixService:
         if user_data.get("middle_name"):
             parts.append(user_data["middle_name"])
         
-        return " ".join(parts) if parts else "Unknown User"
+        if parts:
+            return " ".join(parts)
+        
+        # Если ничего нет, возвращаем email
+        return user_data.get("email", "Unknown User")
 
 
 # Создаем singleton экземпляр сервиса
