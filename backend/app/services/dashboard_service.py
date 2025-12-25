@@ -57,6 +57,17 @@ class DashboardService:
                 "columns": list(approval_time[0].keys()) if approval_time else []
             })
         
+        # 4. Просроченные задачи (просчеты, образцы, производства)
+        overdue_tasks = self._get_overdue_tasks_data(user_full_name)
+        if overdue_tasks:
+            dashboard_items.append({
+                "id": "overdue_tasks",
+                "title": "Просроченные задачи",
+                "description": "Количество и среднее время просрочки по категориям",
+                "data": overdue_tasks,
+                "columns": list(overdue_tasks[0].keys()) if overdue_tasks else []
+            })
+        
         return dashboard_items
     
     def _get_conversions_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
@@ -515,6 +526,90 @@ class DashboardService:
             return result
         except Exception as e:
             print(f"Error executing approval time query: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    def _get_overdue_tasks_data(self, user_full_name: str) -> List[Dict]:
+        """
+        Получает данные по просроченным задачам (просчеты, образцы, производства)
+        
+        Args:
+            user_full_name: ФИО пользователя
+        """
+        print(f"🔍 Executing overdue tasks query for user: '{user_full_name}'")
+        
+        query = """
+        WITH proscheti_overdue AS (
+            SELECT
+                COUNT(*) AS count,
+                AVG(prosr_day) AS avg_days
+            FROM (
+                SELECT prosr_day FROM proscheti_gr_artema
+                WHERE "user" = :user_name
+                  AND prosrok_now = 'Да'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT prosr_day FROM proscheti_gr_zheni
+                WHERE "user" = :user_name
+                  AND prosrok_now = 'Да'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) combined
+        ),
+        obrazci_overdue AS (
+            SELECT
+                COUNT(*) AS count,
+                AVG(prosr_day) AS avg_days
+            FROM (
+                SELECT prosr_day FROM obrazci_gr_artema
+                WHERE "user" = :user_name
+                  AND prosrok_now = 'Да'
+                  AND (status <> 'Завершенная' OR status IS NULL)
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT prosr_day FROM obrazci_gr_zheni
+                WHERE "user" = :user_name
+                  AND prosrok_now = 'Да'
+                  AND (status <> 'Завершенная' OR status IS NULL)
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) combined
+        ),
+        proizv_overdue AS (
+            SELECT
+                COUNT(*) AS count,
+                AVG(prosr_day) AS avg_days
+            FROM (
+                SELECT prosr_day FROM proizv_gr_artema
+                WHERE "user" = :user_name
+                  AND prosrok_now = 'Да'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT prosr_day FROM proizv_gr_zheni
+                WHERE "user" = :user_name
+                  AND prosrok_now = 'Да'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) combined
+        )
+        SELECT
+            COALESCE(p.count, 0) AS "Просчеты (кол-во)",
+            ROUND(COALESCE(p.avg_days, 0)::numeric, 1) AS "Просчеты (ср. дней)",
+            COALESCE(o.count, 0) AS "Образцы (кол-во)",
+            ROUND(COALESCE(o.avg_days, 0)::numeric, 1) AS "Образцы (ср. дней)",
+            COALESCE(pr.count, 0) AS "Производства (кол-во)",
+            ROUND(COALESCE(pr.avg_days, 0)::numeric, 1) AS "Производства (ср. дней)"
+        FROM proscheti_overdue p
+        CROSS JOIN obrazci_overdue o
+        CROSS JOIN proizv_overdue pr
+        """
+        
+        try:
+            result = execute_query(query, {"user_name": user_full_name})
+            print(f"✅ Overdue tasks query executed, rows returned: {len(result)}")
+            if result:
+                print(f"📊 Sample row: {result[0]}")
+            return result
+        except Exception as e:
+            print(f"Error executing overdue tasks query: {e}")
             import traceback
             traceback.print_exc()
             return []
