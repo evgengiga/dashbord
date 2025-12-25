@@ -29,28 +29,32 @@ class PlanfixService:
         """
         try:
             async with httpx.AsyncClient() as client:
-                # Запрос на получение пользователя по email
+                # Запрос на получение списка пользователей с фильтром по email
                 response = await client.post(
-                    f"{self.base_url}user/list",
+                    f"{self.base_url}contact/list",
                     headers=self.headers,
                     json={
                         "filters": [
                             {
-                                "type": 1,  # email filter
+                                "field": "email",
                                 "operator": "equal",
                                 "value": email
                             }
-                        ]
+                        ],
+                        "fields": "id,name,email,lastName,firstName,middleName"
                     },
                     timeout=10.0
                 )
+                
+                print(f"Planfix API response status: {response.status_code}")
+                print(f"Planfix API response: {response.text}")
                 
                 if response.status_code == 200:
                     data = response.json()
                     
                     # Проверяем, что пользователь найден
-                    if data.get("users") and len(data["users"]) > 0:
-                        user = data["users"][0]
+                    if data.get("contacts") and len(data["contacts"]) > 0:
+                        user = data["contacts"][0]
                         return {
                             "id": user.get("id"),
                             "email": user.get("email"),

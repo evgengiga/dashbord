@@ -34,7 +34,10 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """Формирует URL для подключения к базе данных"""
-        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        from urllib.parse import quote_plus
+        # Экранируем пароль для использования в URL
+        encoded_password = quote_plus(self.DB_PASSWORD)
+        return f"postgresql://{self.DB_USER}:{encoded_password}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
     @property
     def cors_origins_list(self) -> List[str]:
