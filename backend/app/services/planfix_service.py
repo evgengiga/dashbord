@@ -35,14 +35,7 @@ class PlanfixService:
                     f"{self.base_url}user/list",
                     headers=self.headers,
                     json={
-                        "filters": [
-                            {
-                                "type": 1,  # Email filter  
-                                "operator": "equal",
-                                "value": email
-                            }
-                        ],
-                        "fields": "id,name,surname,patronymic,email"
+                        "email": email  # Простой формат, который работает
                     },
                     timeout=10.0
                 )
@@ -62,20 +55,31 @@ class PlanfixService:
                     if users and len(users) > 0:
                         user = users[0]
                         
-                        print(f"User data from Planfix: {user}")  # Данные пользователя
+                        print(f"📋 User data from Planfix: {user}")  # Данные пользователя
+                        print(f"🔑 Available keys in user object: {list(user.keys())}")
                         
                         # Собираем полное имя из компонентов
-                        surname = user.get("surname") or user.get("lastName") or ""
-                        name = user.get("name") or user.get("firstName") or ""
-                        patronymic = user.get("patronymic") or user.get("middleName") or ""
+                        surname = user.get("surname") or user.get("lastName") or user.get("lastname") or ""
+                        name = user.get("name") or user.get("firstName") or user.get("firstname") or ""
+                        patronymic = user.get("patronymic") or user.get("middleName") or user.get("middlename") or ""
+                        
+                        print(f"🔍 Extracted: surname='{surname}', name='{name}', patronymic='{patronymic}'")
                         
                         # Формируем ФИО как "Фамилия Имя Отчество"
                         full_name_parts = [surname, name, patronymic]
                         full_name = " ".join([p for p in full_name_parts if p])
                         
-                        # Если ничего нет, пробуем извлечь имя из email
+                        print(f"🔧 Constructed from parts: '{full_name}'")
+                        
+                        # Если ничего нет, проверяем другие возможные поля с полным именем
                         if not full_name:
-                            full_name = user.get("name") or user.get("title")
+                            full_name = (user.get("fullName") or 
+                                       user.get("full_name") or 
+                                       user.get("displayName") or
+                                       user.get("title") or
+                                       user.get("name"))
+                            
+                            print(f"🔧 Trying alternative fields, got: '{full_name}'")
                             
                             # Если все еще пусто - берем часть email до @
                             if not full_name:
