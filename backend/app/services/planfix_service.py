@@ -2,14 +2,16 @@
 Сервис для работы с Planfix API
 """
 import httpx
+import xml.etree.ElementTree as ET
 from typing import Optional, Dict
 from ..core.config import settings
 
 
 class PlanfixService:
-    """Сервис для взаимодействия с Planfix REST API"""
+    """Сервис для взаимодействия с Planfix REST и XML API"""
     
     def __init__(self):
+        # REST API
         self.base_url = settings.PLANFIX_API_URL
         self.token = settings.PLANFIX_API_TOKEN
         self.headers = {
@@ -17,10 +19,123 @@ class PlanfixService:
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
+        
+        # XML API
+        self.xml_api_url = "https://megamindru.planfix.ru/xml/"
+        self.xml_api_key = "f6d50e651c89858b9bad67a482b3ad64"
+        self.xml_token = "a2356ad9e5949d6db8b15919f5fe5758"
+        self.account = "megamindru"
+    
+    async def get_user_by_email_xml(self, email: str) -> Optional[Dict]:
+        """
+        Получает информацию о пользователе через XML API Planfix
+        
+        Args:
+            email: Email пользователя
+            
+        Returns:
+            Словарь с данными пользователя или None
+        """
+        try:
+            print(f"🔷 Trying XML API for email: {email}")
+            
+            # Формируем XML запрос для contact.getList
+            xml_request = f"""<?xml version="1.0" encoding="UTF-8"?>
+<request method="contact.getList">
+    <account>{self.account}</account>
+    <auth>
+        <apiKey>{self.xml_api_key}</apiKey>
+        <token>{self.xml_token}</token>
+    </auth>
+    <pageCurrent>1</pageCurrent>
+    <pageSize>100</pageSize>
+    <target>
+        <type>contact</type>
+    </target>
+</request>"""
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    self.xml_api_url,
+                    content=xml_request,
+                    headers={
+                        "Content-Type": "application/xml; charset=utf-8"
+                    },
+                    timeout=15.0
+                )
+                
+                print(f"🔷 XML API response status: {response.status_code}")
+                print(f"🔷 XML API response (first 1000 chars): {response.text[:1000]}")
+                
+                if response.status_code == 200:
+                    # Парсим XML ответ
+                    root = ET.fromstring(response.text)
+                    
+                    # Проверяем статус ответа
+                    if root.get('status') != 'ok':
+                        error = root.find('.//message')
+                        error_msg = error.text if error is not None else "Unknown error"
+                        print(f"❌ XML API error: {error_msg}")
+                        return None
+                    
+                    # Ищем контакты
+                    contacts = root.find('.//contacts')
+                    if contacts is None:
+                        print(f"⚠️ No contacts element in XML response")
+                        return None
+                    
+                    # Перебираем контакты и ищем по email
+                    for contact in contacts.findall('contact'):
+                        # Проверяем email
+                        contact_emails = contact.findall('.//email')
+                        
+                        for email_element in contact_emails:
+                            if email_element.text and email_element.text.lower() == email.lower():
+                                # Нашли нужный контакт!
+                                contact_id = contact.find('id')
+                                name_elem = contact.find('name')
+                                surname_elem = contact.find('surname')
+                                patronymic_elem = contact.find('patronymic')
+                                
+                                name = name_elem.text if name_elem is not None else ""
+                                surname = surname_elem.text if surname_elem is not None else ""
+                                patronymic = patronymic_elem.text if patronymic_elem is not None else ""
+                                
+                                # Формируем ФИО
+                                full_name_parts = [surname, name, patronymic]
+                                full_name = " ".join([p for p in full_name_parts if p])
+                                
+                                print(f"✅ Found contact via XML API!")
+                                print(f"   ID: {contact_id.text if contact_id is not None else 'N/A'}")
+                                print(f"   Full name: '{full_name}'")
+                                print(f"   Parts: surname='{surname}', name='{name}', patronymic='{patronymic}'")
+                                
+                                return {
+                                    "id": contact_id.text if contact_id is not None else None,
+                                    "email": email,
+                                    "full_name": full_name,
+                                    "last_name": surname,
+                                    "first_name": name,
+                                    "middle_name": patronymic,
+                                }
+                    
+                    print(f"⚠️ Contact with email '{email}' not found in XML response")
+                    return None
+                else:
+                    print(f"❌ XML API returned status {response.status_code}")
+                    return None
+                    
+        except Exception as e:
+            print(f"❌ XML API exception: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
     
     async def get_user_by_email(self, email: str) -> Optional[Dict]:
         """
         Получает информацию о пользователе из Planfix по email
+        
+        Сначала пробует XML API, затем REST API как fallback
         
         Args:
             email: Email пользователя
@@ -28,6 +143,15 @@ class PlanfixService:
         Returns:
             Словарь с данными пользователя или None если не найден
         """
+        # 🔷 ПРИОРИТЕТ 1: Пробуем XML API
+        xml_result = await self.get_user_by_email_xml(email)
+        if xml_result:
+            print(f"✅ Successfully got user via XML API")
+            return xml_result
+        
+        print(f"⚠️ XML API failed, trying REST API as fallback...")
+        
+        # 🔄 FALLBACK: Пробуем REST API
         try:
             async with httpx.AsyncClient() as client:
                 # Пробуем разные endpoints для получения ФИО
