@@ -102,53 +102,73 @@ class PlanfixService:
 
                     return uid, surname, name, patronymic, full_name, primary_email, login
 
-                # 1) Пытаемся найти точное совпадение email
-                for user in users_node.findall('user'):
+                # Безопасный поиск пользователя
+                all_users = users_node.findall('user')
+                print(f"📋 Total users in XML response: {len(all_users)}")
+                print(f"🔍 Searching for: email='{email}', local_part='{target_local}'")
+                
+                matched_user = None
+                match_type = None
+                
+                # Проходим по всем пользователям
+                for idx, user in enumerate(all_users):
+                    # Безопасно извлекаем email и login
                     email_node = user.find('email')
-                    if email_node is not None and email_node.text and email_node.text.lower() == email.lower():
-                        uid, surname, name, patronymic, full_name, primary_email, login = extract_user(user)
-                        print("✅ Found user via XML API user.getList! (exact email)")
-                        print(f"   ID: {uid}")
-                        print(f"   Email: {primary_email}")
-                        print(f"   Login: {login}")
-                        print(f"   Full name: '{full_name}'")
-                        print(f"   Parts: surname='{surname}', name='{name}', patronymic='{patronymic}'")
-
-                        return {
-                            "id": uid,
-                            "email": primary_email or email,
-                            "full_name": full_name,
-                            "last_name": surname,
-                            "first_name": name,
-                            "middle_name": patronymic,
-                        }
-
-                # 2) Если точного нет — ищем по локальной части (без домена) и login
-                for user in users_node.findall('user'):
-                    email_node = user.find('email')
-                    user_email = email_node.text if email_node is not None else ""
+                    login_node = user.find('login')
+                    
+                    user_email = email_node.text if (email_node is not None and email_node.text) else ""
+                    user_login = login_node.text if (login_node is not None and login_node.text) else ""
+                    
+                    # Пропускаем пользователей без email и login
+                    if not user_email and not user_login:
+                        print(f"   [User #{idx+1}] Skipping: no email, no login")
+                        continue
+                    
+                    # Приводим к нижнему регистру для сравнения
+                    user_email_lower = user_email.lower() if user_email else ""
+                    user_login_lower = user_login.lower() if user_login else ""
                     user_local = local_part(user_email)
-                    login = user.find('login').text if user.find('login') is not None else ""
+                    
+                    # Логируем каждого пользователя для отладки
+                    print(f"   [User #{idx+1}] email='{user_email}', login='{user_login}', local='{user_local}'")
+                    
+                    # Проверяем совпадения (по приоритету)
+                    if user_email_lower and user_email_lower == email.lower():
+                        matched_user = user
+                        match_type = "exact email"
+                        print(f"      ✓ MATCH: exact email")
+                        break
+                    elif user_login_lower and user_login_lower == target_local:
+                        matched_user = user
+                        match_type = "login"
+                        print(f"      ✓ MATCH: login")
+                        break
+                    elif user_local and user_local == target_local:
+                        matched_user = user
+                        match_type = "email local part"
+                        print(f"      ✓ MATCH: email local part")
+                        break
+                
+                if matched_user:
+                    uid, surname, name, patronymic, full_name, primary_email, login = extract_user(matched_user)
+                    print(f"\n✅ Found user via XML API user.getList!")
+                    print(f"   Match type: {match_type}")
+                    print(f"   ID: {uid}")
+                    print(f"   Email: {primary_email}")
+                    print(f"   Login: {login}")
+                    print(f"   Full name: '{full_name}'")
+                    print(f"   Parts: surname='{surname}', name='{name}', patronymic='{patronymic}'")
 
-                    if user_local == target_local or login.lower() == target_local:
-                        uid, surname, name, patronymic, full_name, primary_email, login_val = extract_user(user)
-                        print("✅ Found user via XML API user.getList! (local-part/login match)")
-                        print(f"   ID: {uid}")
-                        print(f"   Email: {primary_email}")
-                        print(f"   Login: {login_val}")
-                        print(f"   Full name: '{full_name}'")
-                        print(f"   Parts: surname='{surname}', name='{name}', patronymic='{patronymic}'")
-
-                        return {
-                            "id": uid,
-                            "email": primary_email or email,
-                            "full_name": full_name,
-                            "last_name": surname,
-                            "first_name": name,
-                            "middle_name": patronymic,
-                        }
-
-                print(f"⚠️ User with email '{email}' (or local '{target_local}') not found in XML user.getList response")
+                    return {
+                        "id": uid,
+                        "email": primary_email or email,
+                        "full_name": full_name,
+                        "last_name": surname,
+                        "first_name": name,
+                        "middle_name": patronymic,
+                    }
+                
+                print(f"\n⚠️ User with email '{email}' (local: '{target_local}') NOT FOUND in {len(all_users)} users")
                 return None
         except Exception as e:
             print(f"❌ XML API exception: {e}")
