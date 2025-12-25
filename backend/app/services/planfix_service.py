@@ -3,7 +3,8 @@
 """
 import httpx
 import xml.etree.ElementTree as ET
-from typing import Optional, Dict
+import hashlib
+from typing import Optional, Dict, List
 from ..core.config import settings
 
 
@@ -20,11 +21,12 @@ class PlanfixService:
             "Accept": "application/json"
         }
         
-        # XML API
-        self.xml_api_url = "https://apiru.planfix.ru/xml/"  # RU сервер для XML API
+        # XML API (RU датацентр)
+        self.xml_api_url = "https://apiru.planfix.ru/xml/"  # официальная точка входа XML API
         self.xml_api_key = "f6d50e651c89858b9bad67a482b3ad64"
         self.xml_token = "2f064a30c8530668cd4e01176be1fb9d"  # Новый токен
-        self.account = "megamindru"
+        self.account = "megamindru"  # строго как в настройках XML API
+        self.xml_private_key = "41e92c92001fb0197494520a53cb3cd6"
     
     async def get_user_by_email_xml(self, email: str) -> Optional[Dict]:
         """
@@ -39,59 +41,106 @@ class PlanfixService:
         try:
             print(f"🔷 Trying XML API for email: {email}")
             
-            # Формируем XML запрос для contact.getList
-            xml_request = f"""<?xml version="1.0" encoding="UTF-8"?>
+            # Базовый XML без подписи (signature добавляется ниже)
+            base_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <request method="contact.getList">
     <account>{self.account}</account>
     <auth>
         <apiKey>{self.xml_api_key}</apiKey>
         <token>{self.xml_token}</token>
+        {{signature_block}}
     </auth>
     <pageCurrent>1</pageCurrent>
-    <pageSize>100</pageSize>
+    <pageSize>50</pageSize>
     <target>
         <type>contact</type>
     </target>
+    <filters>
+        <filter>
+            <field>email</field>
+            <operator>equals</operator>
+            <value>{email}</value>
+        </filter>
+    </filters>
 </request>"""
+
+            def compute_signatures(payload: str) -> List[str]:
+                """
+                Пробуем несколько вариантов подписи из практики Planfix XML API.
+                Пока нет точной формулы, пробуем последовательность:
+                1) md5(apiKey + token + body + privateKey)
+                2) md5(apiKey + body + privateKey)
+                3) md5(token + body + privateKey)
+                """
+                variants = []
+                body_bytes = payload.encode("utf-8")
+                # 1) apiKey + token + body + privateKey
+                variants.append(hashlib.md5((self.xml_api_key + self.xml_token).encode("utf-8") + body_bytes + self.xml_private_key.encode("utf-8")).hexdigest())
+                # 2) apiKey + body + privateKey
+                variants.append(hashlib.md5(self.xml_api_key.encode("utf-8") + body_bytes + self.xml_private_key.encode("utf-8")).hexdigest())
+                # 3) token + body + privateKey
+                variants.append(hashlib.md5(self.xml_token.encode("utf-8") + body_bytes + self.xml_private_key.encode("utf-8")).hexdigest())
+                return variants
+
+            signatures = compute_signatures(base_xml.replace("{signature_block}", ""))
             
             async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    self.xml_api_url,
-                    content=xml_request,
-                    headers={
-                        "Content-Type": "application/xml; charset=utf-8"
-                    },
-                    timeout=15.0
-                )
-                
-                print(f"🔷 XML API response status: {response.status_code}")
-                print(f"🔷 XML API response (first 1000 chars): {response.text[:1000]}")
-                
-                if response.status_code == 200:
-                    # Парсим XML ответ
-                    root = ET.fromstring(response.text)
+                success = False
+                last_error = None
+
+                for idx, sig in enumerate(signatures, start=1):
+                    xml_request = base_xml.replace("{signature_block}", f"<signature>{sig}</signature>")
+
+                    try:
+                        response = await client.post(
+                            self.xml_api_url,
+                            content=xml_request,
+                            headers={
+                                "Content-Type": "application/xml; charset=utf-8",
+                                "Accept": "application/xml"
+                            },
+                            timeout=15.0
+                        )
+                    except Exception as e:
+                        last_error = str(e)
+                        print(f"❌ XML request exception (variant {idx}): {e}")
+                        continue
                     
-                    # Проверяем статус ответа
+                    print(f"🔷 XML API response status (variant {idx}): {response.status_code}")
+                    print(f"🔷 XML API response (first 400 chars, variant {idx}): {response.text[:400]}")
+                    
+                    if response.status_code != 200:
+                        last_error = f"status {response.status_code}"
+                        continue
+
+                    try:
+                        root = ET.fromstring(response.text)
+                    except Exception as parse_err:
+                        last_error = f"parse error: {parse_err}"
+                        print(f"❌ XML parse error (variant {idx}): {parse_err}")
+                        continue
+                    
                     if root.get('status') != 'ok':
-                        error = root.find('.//message')
-                        error_msg = error.text if error is not None else "Unknown error"
-                        print(f"❌ XML API error: {error_msg}")
-                        return None
-                    
-                    # Ищем контакты
+                        # Если конкретно код 0001 — пробуем следующую подпись
+                        err_code = root.find('.//code').text if root.find('.//code') is not None else "unknown"
+                        err_msg = root.find('.//message').text if root.find('.//message') is not None else "Unknown error"
+                        last_error = f"code={err_code}, msg={err_msg}"
+                        print(f"❌ XML API error (variant {idx}): code={err_code}, msg={err_msg}")
+                        # пробуем следующую подпись
+                        continue
+
+                    # Успешный ответ
+                    success = True
+
                     contacts = root.find('.//contacts')
                     if contacts is None:
-                        print(f"⚠️ No contacts element in XML response")
+                        print("⚠️ No contacts element in XML response")
                         return None
-                    
-                    # Перебираем контакты и ищем по email
+
                     for contact in contacts.findall('contact'):
-                        # Проверяем email
                         contact_emails = contact.findall('.//email')
-                        
                         for email_element in contact_emails:
                             if email_element.text and email_element.text.lower() == email.lower():
-                                # Нашли нужный контакт!
                                 contact_id = contact.find('id')
                                 name_elem = contact.find('name')
                                 surname_elem = contact.find('surname')
@@ -101,11 +150,10 @@ class PlanfixService:
                                 surname = surname_elem.text if surname_elem is not None else ""
                                 patronymic = patronymic_elem.text if patronymic_elem is not None else ""
                                 
-                                # Формируем ФИО
                                 full_name_parts = [surname, name, patronymic]
                                 full_name = " ".join([p for p in full_name_parts if p])
                                 
-                                print(f"✅ Found contact via XML API!")
+                                print("✅ Found contact via XML API!")
                                 print(f"   ID: {contact_id.text if contact_id is not None else 'N/A'}")
                                 print(f"   Full name: '{full_name}'")
                                 print(f"   Parts: surname='{surname}', name='{name}', patronymic='{patronymic}'")
@@ -118,12 +166,13 @@ class PlanfixService:
                                     "first_name": name,
                                     "middle_name": patronymic,
                                 }
-                    
+
                     print(f"⚠️ Contact with email '{email}' not found in XML response")
                     return None
-                else:
-                    print(f"❌ XML API returned status {response.status_code}")
-                    return None
+
+                # Если все варианты не сработали
+                print(f"❌ XML API authorization failed. Last error: {last_error}")
+                return None
                     
         except Exception as e:
             print(f"❌ XML API exception: {e}")
