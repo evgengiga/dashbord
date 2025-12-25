@@ -13,7 +13,7 @@ class PlanfixService:
         self.base_url = settings.PLANFIX_API_URL
         self.token = settings.PLANFIX_API_TOKEN
         self.headers = {
-            "Authorization": f"Bearer {self.token}",
+            "Authorization": self.token,  # Planfix не использует Bearer
             "Content-Type": "application/json"
         }
     
@@ -29,45 +29,48 @@ class PlanfixService:
         """
         try:
             async with httpx.AsyncClient() as client:
-                # Запрос на получение списка пользователей с фильтром по email
+                # Согласно документации Planfix REST API
                 response = await client.post(
                     f"{self.base_url}contact/list",
                     headers=self.headers,
                     json={
-                        "filters": [
-                            {
-                                "field": "email",
-                                "operator": "equal",
-                                "value": email
-                            }
-                        ],
-                        "fields": "id,name,email,lastName,firstName,middleName"
+                        "email": email
                     },
                     timeout=10.0
                 )
                 
+                print(f"Planfix API request to: {self.base_url}contact/list")
                 print(f"Planfix API response status: {response.status_code}")
-                print(f"Planfix API response: {response.text}")
+                print(f"Planfix API response: {response.text[:500]}")  # Первые 500 символов
                 
                 if response.status_code == 200:
                     data = response.json()
                     
-                    # Проверяем, что пользователь найден
-                    if data.get("contacts") and len(data["contacts"]) > 0:
-                        user = data["contacts"][0]
+                    # Проверяем разные варианты структуры ответа
+                    contacts = data.get("contacts") or data.get("list") or []
+                    
+                    if contacts and len(contacts) > 0:
+                        user = contacts[0]
+                        full_name = (user.get("name") or 
+                                   f"{user.get('lastName', '')} {user.get('firstName', '')} {user.get('middleName', '')}".strip())
+                        
                         return {
                             "id": user.get("id"),
-                            "email": user.get("email"),
-                            "full_name": user.get("name"),
+                            "email": user.get("email") or email,
+                            "full_name": full_name,
                             "last_name": user.get("lastName", ""),
                             "first_name": user.get("firstName", ""),
                             "middle_name": user.get("middleName", ""),
                         }
+                else:
+                    print(f"Planfix API error response: {response.text}")
                 
                 return None
                 
         except Exception as e:
-            print(f"Planfix API error: {e}")
+            print(f"Planfix API exception: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def get_user_full_name(self, user_data: Dict) -> str:
