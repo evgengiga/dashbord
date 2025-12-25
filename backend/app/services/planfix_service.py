@@ -34,12 +34,12 @@ class PlanfixService:
         """
         print(f"🔷 Trying XML API (basic auth) for email: {email}")
 
-        # XML запрос user.getList (берем до 500 сотрудников)
+        # XML запрос user.getList (Planfix ограничивает pageSize, ставим 100)
         xml_request = f"""<?xml version="1.0" encoding="UTF-8"?>
 <request method="user.getList">
   <account>{self.account}</account>
   <pageCurrent>1</pageCurrent>
-  <pageSize>500</pageSize>
+  <pageSize>100</pageSize>
 </request>"""
 
         basic = base64.b64encode(f"{self.xml_api_key}:{self.xml_token}".encode("utf-8")).decode("utf-8")
