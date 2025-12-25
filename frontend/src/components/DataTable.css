@@ -1,0 +1,104 @@
+.data-table-wrapper {
+  overflow-x: auto;
+  margin-top: 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 600px;
+}
+
+.data-table thead {
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table th {
+  padding: 14px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #555;
+  transition: background-color 0.2s ease;
+}
+
+.data-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.data-table tbody tr:hover {
+  background: #f8f9fa !important;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Стили для чисел */
+.data-table td:not(:first-child) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Стили для процентов с цветовой индикацией */
+.data-table td[style*="backgroundColor"] {
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+/* Альтернативные строки (zebra striping) */
+.data-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .data-table {
+    font-size: 12px;
+    min-width: 500px;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 10px 8px;
+  }
+  
+  .data-table th {
+    font-size: 11px;
+  }
+}
+
+/* Скролл для мобильных */
+@media (max-width: 600px) {
+  .data-table-wrapper {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .data-table-wrapper::after {
+    content: '← Прокрутите →';
+    display: block;
+    text-align: center;
+    padding: 10px;
+    font-size: 12px;
+    color: #999;
+    background: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+  }
+}
+
+

@@ -1,0 +1,40 @@
+services:
+  backend:
+    build: ./backend
+    container_name: dashboard-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=pg4.sweb.ru
+      - DB_PORT=5433
+      - DB_USER=headcorne_test
+      - DB_PASSWORD=Ss8SRGP5TH3W6J@L
+      - DB_NAME=headcorne_test
+      - PLANFIX_API_URL=https://megamindru.planfix.ru/rest/
+      - PLANFIX_API_TOKEN=3325457cab2f1a9b69b3c9191eeadc82
+      - SECRET_KEY=super-secret-key-change-in-production-min-32-characters-long
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      - APP_NAME=Dashboard Service
+      - DEBUG=False
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost
+    restart: unless-stopped
+    networks:
+      - dashboard-network
+
+  frontend:
+    build: ./frontend
+    container_name: dashboard-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - dashboard-network
+
+networks:
+  dashboard-network:
+    driver: bridge
+
+
