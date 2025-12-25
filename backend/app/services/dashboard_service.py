@@ -79,6 +79,17 @@ class DashboardService:
                 "columns": list(production_acceptance_time[0].keys()) if production_acceptance_time else []
             })
         
+        # 6. Заказы от клиентов по финансовому году
+        client_orders = self._get_client_orders_data(user_full_name, fiscal_year)
+        if client_orders:
+            dashboard_items.append({
+                "id": "client_orders",
+                "title": "Заказы от клиентов",
+                "description": "Количество заказов от клиентов за финансовый год",
+                "data": client_orders,
+                "columns": list(client_orders[0].keys()) if client_orders else []
+            })
+        
         return dashboard_items
     
     def _get_conversions_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
@@ -695,6 +706,86 @@ class DashboardService:
             return result
         except Exception as e:
             print(f"Error executing production acceptance time query: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+    
+    def _get_client_orders_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
+        """
+        Получает данные по заказам от клиентов для пользователя за финансовый год
+        
+        Args:
+            user_full_name: ФИО пользователя
+            fiscal_year: "current" или "previous"
+        """
+        print(f"🔍 Executing client orders query for user: '{user_full_name}', fiscal year: {fiscal_year}")
+        
+        # Определяем смещение для финансового года
+        year_offset = 0 if fiscal_year == "current" else -1
+        
+        query = f"""
+        WITH client_data AS (
+            SELECT
+                kontr_name,
+                COUNT(DISTINCT nad_zad_name) AS order_count
+            FROM (
+                SELECT kontr_name, nad_zad_name, "user", date_create FROM proizv_gr_artema
+                WHERE "user" = :user_name
+                  AND date_create IS NOT NULL
+                UNION ALL
+                SELECT kontr_name, nad_zad_name, "user", date_create FROM proizv_gr_zheni
+                WHERE "user" = :user_name
+                  AND date_create IS NOT NULL
+            ) combined
+            WHERE date_create >= 
+                CASE 
+                    WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                    THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                    ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1 + {year_offset}, 3, 1)
+                END
+            AND date_create < 
+                CASE 
+                    WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                    THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
+                    ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                END
+            GROUP BY kontr_name
+        ),
+        with_total AS (
+            SELECT
+                kontr_name AS "Клиент",
+                order_count AS "Кол-во заказов",
+                1 AS sort_order
+            FROM client_data
+            
+            UNION ALL
+            
+            SELECT
+                'ИТОГО' AS "Клиент",
+                SUM(order_count) AS "Кол-во заказов",
+                2 AS sort_order
+            FROM client_data
+        )
+        SELECT
+            "Клиент",
+            "Кол-во заказов"
+        FROM with_total
+        ORDER BY
+            sort_order,
+            CASE WHEN sort_order = 1 THEN "Кол-во заказов" END DESC,
+            CASE WHEN sort_order = 1 THEN "Клиент" END ASC
+        """
+        
+        try:
+            result = execute_query(query, {"user_name": user_full_name})
+            print(f"✅ Client orders query executed, rows returned: {len(result)}")
+            if result:
+                print(f"📊 Sample row: {result[0]}")
+                if len(result) > 1:
+                    print(f"📊 Total row: {result[-1]}")
+            return result
+        except Exception as e:
+            print(f"Error executing client orders query: {e}")
             import traceback
             traceback.print_exc()
             return []
