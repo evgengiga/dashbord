@@ -30,27 +30,49 @@ class PlanfixService:
         """
         try:
             async with httpx.AsyncClient() as client:
-                # Используем user/list так как у токена есть user_readonly scope
-                response = await client.post(
-                    f"{self.base_url}user/list",
-                    headers=self.headers,
-                    json={
-                        "email": email  # Простой формат, который работает
-                    },
-                    timeout=10.0
-                )
+                # Пробуем разные endpoints для получения ФИО
+                endpoints_to_try = [
+                    ("user/list", {"email": email}),
+                    ("contact/list", {"email": email}),
+                    ("employee/list", {"filters": [{"field": "email", "operator": "equals", "value": email}]})
+                ]
                 
-                print(f"Planfix API request to: {self.base_url}user/list")
-                print(f"Planfix API response status: {response.status_code}")
-                print(f"Planfix API response: {response.text[:500]}")
+                response = None
+                for endpoint, payload in endpoints_to_try:
+                    print(f"🔄 Trying endpoint: {endpoint} with payload: {payload}")
+                    try:
+                        response = await client.post(
+                            f"{self.base_url}{endpoint}",
+                            headers=self.headers,
+                            json=payload,
+                            timeout=10.0
+                        )
+                        print(f"   Response status: {response.status_code}")
+                        
+                        if response.status_code == 200:
+                            print(f"   ✅ Success with endpoint: {endpoint}")
+                            break
+                        else:
+                            print(f"   ❌ Failed: {response.text[:200]}")
+                    except Exception as e:
+                        print(f"   ❌ Exception: {e}")
+                        continue
                 
-                if response.status_code == 200:
+                if not response or response.status_code != 200:
+                    print(f"❌ All endpoints failed!")
+                    return None
+                
+                # Логи уже выведены выше в цикле
+                if response and response.status_code == 200:
                     data = response.json()
                     
-                    print(f"Planfix full response: {data}")  # Полный ответ для отладки
+                    print(f"📋 Planfix full response: {data}")  # Полный ответ для отладки
                     
-                    # Проверяем разные варианты структуры ответа
-                    users = data.get("users") or data.get("list") or []
+                    # Проверяем разные варианты структуры ответа (users, contacts, employees, list)
+                    users = (data.get("users") or 
+                            data.get("contacts") or 
+                            data.get("employees") or 
+                            data.get("list") or [])
                     
                     if users and len(users) > 0:
                         user = users[0]
@@ -58,51 +80,51 @@ class PlanfixService:
                         print(f"📋 User data from Planfix: {user}")  # Данные пользователя
                         print(f"🔑 Available keys in user object: {list(user.keys())}")
                         
-                        # Собираем полное имя из компонентов
-                        surname = user.get("surname") or user.get("lastName") or user.get("lastname") or ""
-                        name = user.get("name") or user.get("firstName") or user.get("firstname") or ""
-                        patronymic = user.get("patronymic") or user.get("middleName") or user.get("middlename") or ""
+                        # Проверяем, может быть fullName уже есть
+                        full_name = (user.get("fullName") or 
+                                   user.get("full_name") or 
+                                   user.get("displayName") or
+                                   user.get("title"))
                         
-                        print(f"🔍 Extracted: surname='{surname}', name='{name}', patronymic='{patronymic}'")
+                        if full_name:
+                            print(f"✅ Found fullName directly: '{full_name}'")
+                        else:
+                            # Собираем полное имя из компонентов
+                            surname = user.get("surname") or user.get("lastName") or user.get("lastname") or ""
+                            name = user.get("name") or user.get("firstName") or user.get("firstname") or ""
+                            patronymic = user.get("patronymic") or user.get("middleName") or user.get("middlename") or ""
+                            
+                            print(f"🔍 Extracted: surname='{surname}', name='{name}', patronymic='{patronymic}'")
                         
-                        # Формируем ФИО как "Фамилия Имя Отчество"
-                        full_name_parts = [surname, name, patronymic]
-                        full_name = " ".join([p for p in full_name_parts if p])
+                            # Формируем ФИО как "Фамилия Имя Отчество"
+                            full_name_parts = [surname, name, patronymic]
+                            full_name = " ".join([p for p in full_name_parts if p])
+                            
+                            print(f"🔧 Constructed from parts: '{full_name}'")
                         
-                        print(f"🔧 Constructed from parts: '{full_name}'")
-                        
-                        # Если ничего нет, проверяем другие возможные поля с полным именем
+                        # Если все еще пусто - берем часть email до @
                         if not full_name:
-                            full_name = (user.get("fullName") or 
-                                       user.get("full_name") or 
-                                       user.get("displayName") or
-                                       user.get("title") or
-                                       user.get("name"))
-                            
-                            print(f"🔧 Trying alternative fields, got: '{full_name}'")
-                            
-                            # Если все еще пусто - берем часть email до @
-                            if not full_name:
-                                email_name = email.split("@")[0]
-                                # Пробуем распарсить типичные форматы: firstname.lastname или firstname_lastname
-                                if "." in email_name:
-                                    parts = email_name.split(".")
-                                    full_name = " ".join([p.capitalize() for p in parts if p])
-                                elif "_" in email_name:
-                                    parts = email_name.split("_")
-                                    full_name = " ".join([p.capitalize() for p in parts if p])
-                                else:
-                                    full_name = email_name.capitalize()
+                            email_name = email.split("@")[0]
+                            print(f"⚠️ No fullName from Planfix, using email part: '{email_name}'")
+                            # Пробуем распарсить типичные форматы: firstname.lastname или firstname_lastname
+                            if "." in email_name:
+                                parts = email_name.split(".")
+                                full_name = " ".join([p.capitalize() for p in parts if p])
+                            elif "_" in email_name:
+                                parts = email_name.split("_")
+                                full_name = " ".join([p.capitalize() for p in parts if p])
+                            else:
+                                full_name = email_name.capitalize()
                         
-                        print(f"Constructed full name: '{full_name}' (from surname='{surname}', name='{name}', patronymic='{patronymic}')")
+                        print(f"🎯 Final full name: '{full_name}'")
                         
                         return {
                             "id": user.get("id"),
                             "email": user.get("email") or email,
                             "full_name": full_name,
-                            "last_name": surname,
-                            "first_name": name,
-                            "middle_name": patronymic,
+                            "last_name": user.get("surname", ""),
+                            "first_name": user.get("name", ""),
+                            "middle_name": user.get("patronymic", ""),
                         }
                 else:
                     print(f"Planfix API error response: {response.text}")
