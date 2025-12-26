@@ -58,14 +58,15 @@ class DashboardService:
             })
         
         # 4. Просроченные задачи (просчеты, образцы, производства)
-        overdue_tasks = self._get_overdue_tasks_data(user_full_name)
-        if overdue_tasks:
+        overdue_tasks_data = self._get_overdue_tasks_data(user_full_name)
+        if overdue_tasks_data and overdue_tasks_data.get("summary"):
             dashboard_items.append({
                 "id": "overdue_tasks",
                 "title": "Просроченные задачи",
                 "description": "Количество и среднее время просрочки по категориям",
-                "data": overdue_tasks,
-                "columns": list(overdue_tasks[0].keys()) if overdue_tasks else []
+                "data": overdue_tasks_data["summary"],
+                "columns": list(overdue_tasks_data["summary"][0].keys()) if overdue_tasks_data["summary"] else [],
+                "details": overdue_tasks_data.get("details", [])  # Добавляем детализацию
             })
         
         # 5. Среднее время принятия производства по месяцам
@@ -530,7 +531,20 @@ class DashboardService:
             FROM monthly_data
         )
         SELECT
-            TO_CHAR(month_date, 'TMMonth, YYYY') AS "Месяц",
+            CASE EXTRACT(MONTH FROM month_date)
+                WHEN 1 THEN 'Январь'
+                WHEN 2 THEN 'Февраль'
+                WHEN 3 THEN 'Март'
+                WHEN 4 THEN 'Апрель'
+                WHEN 5 THEN 'Май'
+                WHEN 6 THEN 'Июнь'
+                WHEN 7 THEN 'Июль'
+                WHEN 8 THEN 'Август'
+                WHEN 9 THEN 'Сентябрь'
+                WHEN 10 THEN 'Октябрь'
+                WHEN 11 THEN 'Ноябрь'
+                WHEN 12 THEN 'Декабрь'
+            END || ', ' || EXTRACT(YEAR FROM month_date)::text AS "Месяц",
             ROUND(avg_days::numeric, 1) AS "Среднее время (дней)",
             CASE
                 WHEN prev_month_avg IS NULL THEN NULL
@@ -554,14 +568,18 @@ class DashboardService:
     
     def _get_overdue_tasks_data(self, user_full_name: str) -> List[Dict]:
         """
-        Получает данные по просроченным задачам (просчеты, образцы, производства)
+        Получает данные по просроченным задачам с группировкой и детализацией
         
         Args:
             user_full_name: ФИО пользователя
+            
+        Returns:
+            Список словарей: summary (сводка) + details (детализация по типам)
         """
         print(f"🔍 Executing overdue tasks query for user: '{user_full_name}'")
         
-        query = """
+        # Сводная таблица
+        summary_query = """
         WITH proscheti_overdue AS (
             SELECT
                 COUNT(*) AS count,
@@ -613,28 +631,103 @@ class DashboardService:
             ) combined
         )
         SELECT
-            COALESCE(p.count, 0) AS "Просчеты (кол-во)",
-            ROUND(COALESCE(p.avg_days, 0)::numeric, 1) AS "Просчеты (ср. дней)",
-            COALESCE(o.count, 0) AS "Образцы (кол-во)",
-            ROUND(COALESCE(o.avg_days, 0)::numeric, 1) AS "Образцы (ср. дней)",
-            COALESCE(pr.count, 0) AS "Производства (кол-во)",
-            ROUND(COALESCE(pr.avg_days, 0)::numeric, 1) AS "Производства (ср. дней)"
+            'Просчеты' AS "Категория",
+            COALESCE(p.count, 0) AS "Кол-во",
+            ROUND(COALESCE(p.avg_days, 0)::numeric, 1) AS "Ср. дней"
         FROM proscheti_overdue p
-        CROSS JOIN obrazci_overdue o
-        CROSS JOIN proizv_overdue pr
+        UNION ALL
+        SELECT
+            'Образцы' AS "Категория",
+            COALESCE(o.count, 0) AS "Кол-во",
+            ROUND(COALESCE(o.avg_days, 0)::numeric, 1) AS "Ср. дней"
+        FROM obrazci_overdue o
+        UNION ALL
+        SELECT
+            'Производства' AS "Категория",
+            COALESCE(pr.count, 0) AS "Кол-во",
+            ROUND(COALESCE(pr.avg_days, 0)::numeric, 1) AS "Ср. дней"
+        FROM proizv_overdue pr
+        """
+        
+        # Детализация задач с task_id и task_name
+        details_query = """
+        SELECT
+            'Просчеты' AS category,
+            task_id,
+            task_name,
+            prosr_day
+        FROM (
+            SELECT task_id, task_name, prosr_day FROM proscheti_gr_artema
+            WHERE "user" = :user_name
+              AND prosrok_now = 'Да'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            UNION ALL
+            SELECT task_id, task_name, prosr_day FROM proscheti_gr_zheni
+            WHERE "user" = :user_name
+              AND prosrok_now = 'Да'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+        ) proscheti
+        
+        UNION ALL
+        
+        SELECT
+            'Образцы' AS category,
+            task_id,
+            task_name,
+            prosr_day
+        FROM (
+            SELECT task_id, task_name, prosr_day FROM obrazci_gr_artema
+            WHERE "user" = :user_name
+              AND prosrok_now = 'Да'
+              AND (status <> 'Завершенная' OR status IS NULL)
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            UNION ALL
+            SELECT task_id, task_name, prosr_day FROM obrazci_gr_zheni
+            WHERE "user" = :user_name
+              AND prosrok_now = 'Да'
+              AND (status <> 'Завершенная' OR status IS NULL)
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+        ) obrazci
+        
+        UNION ALL
+        
+        SELECT
+            'Производства' AS category,
+            task_id,
+            task_name,
+            prosr_day
+        FROM (
+            SELECT task_id, task_name, prosr_day FROM proizv_gr_artema
+            WHERE "user" = :user_name
+              AND prosrok_now = 'Да'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            UNION ALL
+            SELECT task_id, task_name, prosr_day FROM proizv_gr_zheni
+            WHERE "user" = :user_name
+              AND prosrok_now = 'Да'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+        ) proizv
+        
+        ORDER BY category, prosr_day DESC
         """
         
         try:
-            result = execute_query(query, {"user_name": user_full_name})
-            print(f"✅ Overdue tasks query executed, rows returned: {len(result)}")
-            if result:
-                print(f"📊 Sample row: {result[0]}")
-            return result
+            summary = execute_query(summary_query, {"user_name": user_full_name})
+            details = execute_query(details_query, {"user_name": user_full_name})
+            
+            print(f"✅ Overdue tasks summary: {len(summary)} categories")
+            print(f"✅ Overdue tasks details: {len(details)} tasks")
+            
+            # Возвращаем и сводку, и детализацию
+            return {
+                "summary": summary,
+                "details": details
+            }
         except Exception as e:
             print(f"Error executing overdue tasks query: {e}")
             import traceback
             traceback.print_exc()
-            return []
+            return {"summary": [], "details": []}
     
     def _get_production_acceptance_time_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
         """
@@ -688,7 +781,20 @@ class DashboardService:
             FROM monthly_data
         )
         SELECT
-            TO_CHAR(month_date, 'TMMonth, YYYY') AS "Месяц",
+            CASE EXTRACT(MONTH FROM month_date)
+                WHEN 1 THEN 'Январь'
+                WHEN 2 THEN 'Февраль'
+                WHEN 3 THEN 'Март'
+                WHEN 4 THEN 'Апрель'
+                WHEN 5 THEN 'Май'
+                WHEN 6 THEN 'Июнь'
+                WHEN 7 THEN 'Июль'
+                WHEN 8 THEN 'Август'
+                WHEN 9 THEN 'Сентябрь'
+                WHEN 10 THEN 'Октябрь'
+                WHEN 11 THEN 'Ноябрь'
+                WHEN 12 THEN 'Декабрь'
+            END || ', ' || EXTRACT(YEAR FROM month_date)::text AS "Месяц",
             ROUND(avg_days::numeric, 1) AS "Среднее время (дней)",
             CASE
                 WHEN prev_month_avg IS NULL THEN NULL
