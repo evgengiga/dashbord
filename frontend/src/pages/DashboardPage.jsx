@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { dashboardAPI } from '../services/api'
 import DataTable from '../components/DataTable'
+import OverdueTasksTable from '../components/OverdueTasksTable'
 import './DashboardPage.css'
 
 function DashboardPage({ token, userInfo, onLogout }) {
@@ -102,7 +103,15 @@ function DashboardPage({ token, userInfo, onLogout }) {
                       {item.description && <p>{item.description}</p>}
                       
                       {item.data && item.data.length > 0 ? (
-                        <DataTable data={item.data} columns={item.columns} />
+                        // Специальный компонент для просроченных задач
+                        item.id === 'overdue_tasks' ? (
+                          <OverdueTasksTable 
+                            data={item.data} 
+                            details={item.details || []} 
+                          />
+                        ) : (
+                          <DataTable data={item.data} columns={item.columns} />
+                        )
                       ) : (
                         <div className="no-data">
                           <p>📭 Нет данных для отображения</p>

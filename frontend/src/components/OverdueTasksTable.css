@@ -1,0 +1,108 @@
+.overdue-tasks-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.overdue-tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.clickable-row {
+  transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+  background-color: #f5f5f5;
+}
+
+.expand-icon {
+  display: inline-block;
+  width: 16px;
+  font-size: 12px;
+  color: #666;
+}
+
+.details-row {
+  background-color: #f9f9f9 !important;
+}
+
+.details-row td {
+  padding: 0 !important;
+}
+
+.task-details {
+  padding: 20px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-details h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.task-item:hover {
+  border-color: #2196F3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
+}
+
+.task-link {
+  color: #2196F3;
+  text-decoration: none;
+  font-weight: 500;
+  flex: 1;
+  margin-right: 16px;
+}
+
+.task-link:hover {
+  text-decoration: underline;
+  color: #1976D2;
+}
+
+.overdue-days {
+  color: #666;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.overdue-days strong {
+  color: #f44336;
+  font-weight: 700;
+}
+
