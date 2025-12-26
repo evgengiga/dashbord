@@ -32,6 +32,7 @@ class DashboardItem(BaseModel):
     description: Optional[str] = None
     data: List[Dict[str, Any]]
     columns: List[str]
+    details: Optional[List[Dict[str, Any]]] = None  # Для детализации (например, список задач)
 
 
 class DashboardResponse(BaseModel):

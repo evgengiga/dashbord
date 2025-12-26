@@ -20,6 +20,14 @@ function DashboardPage({ token, userInfo, onLogout }) {
 
     try {
       const data = await dashboardAPI.getDashboard(fiscalYear)
+      console.log('📊 Dashboard data received:', data)
+      console.log('📊 Items:', data.items)
+      // Логируем просроченные задачи отдельно
+      const overdueItem = data.items?.find(item => item.id === 'overdue_tasks')
+      if (overdueItem) {
+        console.log('📋 Overdue tasks item:', overdueItem)
+        console.log('📋 Overdue details:', overdueItem.details)
+      }
       setDashboardData(data)
     } catch (err) {
       console.error('Dashboard load error:', err)
@@ -102,21 +110,34 @@ function DashboardPage({ token, userInfo, onLogout }) {
                       <h2>{item.title}</h2>
                       {item.description && <p>{item.description}</p>}
                       
-                      {item.data && item.data.length > 0 ? (
+                      {/* Проверяем есть ли данные */}
+                      {(() => {
+                        // Для просроченных задач data может быть объектом {summary, details}
+                        const hasData = item.id === 'overdue_tasks' 
+                          ? (item.data && item.data.length > 0)
+                          : (item.data && item.data.length > 0);
+                        
+                        if (!hasData) {
+                          return (
+                            <div className="no-data">
+                              <p>📭 Нет данных для отображения</p>
+                            </div>
+                          );
+                        }
+                        
                         // Специальный компонент для просроченных задач
-                        item.id === 'overdue_tasks' ? (
-                          <OverdueTasksTable 
-                            data={item.data} 
-                            details={item.details || []} 
-                          />
-                        ) : (
-                          <DataTable data={item.data} columns={item.columns} />
-                        )
-                      ) : (
-                        <div className="no-data">
-                          <p>📭 Нет данных для отображения</p>
-                        </div>
-                      )}
+                        if (item.id === 'overdue_tasks') {
+                          return (
+                            <OverdueTasksTable 
+                              data={item.data} 
+                              details={item.details || []} 
+                            />
+                          );
+                        }
+                        
+                        // Обычная таблица для всех остальных
+                        return <DataTable data={item.data} columns={item.columns} />;
+                      })()}
                     </div>
                   ))
                 ) : (
