@@ -21,10 +21,19 @@ class DashboardService:
         """
         dashboard_items = []
         
-        # Здесь будут ваши SQL-запросы
-        # Пример структуры:
+        # 1. Просроченные задачи (самое важное - показываем первым!)
+        overdue_tasks_data = self._get_overdue_tasks_data(user_full_name)
+        if overdue_tasks_data and overdue_tasks_data.get("summary"):
+            dashboard_items.append({
+                "id": "overdue_tasks",
+                "title": "⚠️ Просроченные задачи",
+                "description": "Количество и среднее время просрочки по категориям",
+                "data": overdue_tasks_data["summary"],
+                "columns": list(overdue_tasks_data["summary"][0].keys()) if overdue_tasks_data["summary"] else [],
+                "details": overdue_tasks_data.get("details", [])  # Добавляем детализацию
+            })
         
-        # 1. Конверсии КП в образцы
+        # 2. Конверсии КП в образцы
         conversions = self._get_conversions_data(user_full_name, fiscal_year)
         if conversions:
             dashboard_items.append({
@@ -35,7 +44,7 @@ class DashboardService:
                 "columns": list(conversions[0].keys()) if conversions else []
             })
         
-        # 2. Конверсии КП в производство
+        # 3. Конверсии КП в производство
         production_conversions = self._get_production_conversions_data(user_full_name, fiscal_year)
         if production_conversions:
             dashboard_items.append({
@@ -46,7 +55,7 @@ class DashboardService:
                 "columns": list(production_conversions[0].keys()) if production_conversions else []
             })
         
-        # 3. Среднее время согласования КП по месяцам
+        # 4. Среднее время согласования КП по месяцам
         approval_time = self._get_approval_time_data(user_full_name)
         if approval_time:
             dashboard_items.append({
@@ -55,18 +64,6 @@ class DashboardService:
                 "description": "Среднее количество дней на согласование КП по месяцам текущего года",
                 "data": approval_time,
                 "columns": list(approval_time[0].keys()) if approval_time else []
-            })
-        
-        # 4. Просроченные задачи (просчеты, образцы, производства)
-        overdue_tasks_data = self._get_overdue_tasks_data(user_full_name)
-        if overdue_tasks_data and overdue_tasks_data.get("summary"):
-            dashboard_items.append({
-                "id": "overdue_tasks",
-                "title": "Просроченные задачи",
-                "description": "Количество и среднее время просрочки по категориям",
-                "data": overdue_tasks_data["summary"],
-                "columns": list(overdue_tasks_data["summary"][0].keys()) if overdue_tasks_data["summary"] else [],
-                "details": overdue_tasks_data.get("details", [])  # Добавляем детализацию
             })
         
         # 5. Среднее время принятия производства по месяцам
