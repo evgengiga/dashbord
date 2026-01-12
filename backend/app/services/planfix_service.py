@@ -345,24 +345,27 @@ class PlanfixService:
         """
         Формирует полное ФИО пользователя из данных Planfix
         
+        ВАЖНО: Формат должен быть "Имя Фамилия" (БЕЗ отчества!)
+        Это соответствует формату в БД, где пользователи указаны только как "Имя Фамилия"
+        
         Args:
             user_data: Данные пользователя из Planfix
             
         Returns:
-            Полное ФИО пользователя
+            Полное ФИО пользователя в формате "Имя Фамилия"
         """
-        # Пробуем сначала получить готовое полное имя
+        # Пробуем сначала получить готовое полное имя (уже правильно сформированное)
         if user_data.get("full_name") and user_data.get("full_name") != "":
             return user_data["full_name"]
         
-        # Или собираем из компонентов (surname name patronymic)
+        # Или собираем из компонентов: ИМЯ ФАМИЛИЯ (БЕЗ отчества!)
+        # Порядок: сначала имя, потом фамилия (не наоборот!)
         parts = []
-        if user_data.get("last_name"):
-            parts.append(user_data["last_name"])
         if user_data.get("first_name"):
-            parts.append(user_data["first_name"])
-        if user_data.get("middle_name"):
-            parts.append(user_data["middle_name"])
+            parts.append(user_data["first_name"])  # Имя ПЕРВЫМ!
+        if user_data.get("last_name"):
+            parts.append(user_data["last_name"])   # Фамилия ВТОРЫМ!
+        # Отчество НЕ добавляем! В БД только "Имя Фамилия"
         
         if parts:
             return " ".join(parts)

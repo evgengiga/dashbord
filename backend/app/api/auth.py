@@ -55,13 +55,26 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
             detail="Неверный пароль"
         )
     
-    # Пароль верный - создаем токен
+    # Пароль верный - обновляем ФИО из Planfix (на случай если оно изменилось или было неправильным)
+    user_data = await planfix_service.get_user_by_email(request.email)
+    if user_data:
+        updated_full_name = planfix_service.get_user_full_name(user_data)
+        if updated_full_name and updated_full_name != db_user.full_name:
+            print(f"🔄 Updating full_name in DB: '{db_user.full_name}' -> '{updated_full_name}'")
+            db_user.full_name = updated_full_name
+            db.commit()
+            db.refresh(db_user)
+    else:
+        # Если не удалось получить из Planfix, используем из БД
+        updated_full_name = db_user.full_name
+    
+    # Создаем токен с актуальным ФИО
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={
             "sub": request.email,
-            "full_name": db_user.full_name,
-            "planfix_id": None  # Можно добавить если нужно
+            "full_name": updated_full_name,
+            "planfix_id": user_data.get("id") if user_data else None
         },
         expires_delta=access_token_expires
     )
@@ -69,7 +82,7 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
-        user_name=db_user.full_name,
+        user_name=updated_full_name,
         user_email=request.email,
         first_login=False
     )
