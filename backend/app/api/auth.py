@@ -85,27 +85,36 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
     3. Создает запись в БД с хешем пароля
     4. Возвращает токен
     """
-    # Проверяем совпадение паролей
-    if request.password != request.password_confirm:
+    # ОБРЕЗАЕМ ПАРОЛЬ СРАЗУ В НАЧАЛЕ (до всех проверок!)
+    password_bytes = request.password.encode('utf-8')
+    if len(password_bytes) > 72:
+        # Обрезаем до 72 байт
+        safe_password = password_bytes[:72].decode('utf-8', errors='ignore')
+        print(f"⚠️ Password truncated from {len(password_bytes)} to 72 bytes")
+    else:
+        safe_password = request.password
+    
+    # Проверяем совпадение паролей (используем обрезанный пароль)
+    password_confirm_bytes = request.password_confirm.encode('utf-8')
+    if len(password_confirm_bytes) > 72:
+        safe_password_confirm = password_confirm_bytes[:72].decode('utf-8', errors='ignore')
+    else:
+        safe_password_confirm = request.password_confirm
+    
+    if safe_password != safe_password_confirm:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Пароли не совпадают"
         )
     
     # Проверяем минимальную длину пароля
-    if len(request.password) < 6:
+    if len(safe_password) < 6:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Пароль должен содержать минимум 6 символов"
         )
     
-    # Проверяем максимальную длину пароля (bcrypt ограничение - 72 байта)
-    # Для безопасности обрезаем до 72 символов (1 символ = 1 байт для ASCII)
-    if len(request.password.encode('utf-8')) > 72:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Пароль не может быть длиннее 72 символов"
-        )
+    print(f"🔐 Using safe password, length: {len(safe_password.encode('utf-8'))} bytes")
     
     # Проверяем что пользователь есть в Planfix
     user_data = await planfix_service.get_user_by_email(request.email)
@@ -127,23 +136,11 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
     # Получаем ФИО из Planfix
     full_name = planfix_service.get_user_full_name(user_data)
     
-    # Обрезаем пароль до 72 байт (ограничение bcrypt)
-    password_bytes = request.password.encode('utf-8')
-    password_length = len(password_bytes)
-    print(f"🔐 Password length: {password_length} bytes, original length: {len(request.password)} chars")
-    
-    if password_length > 72:
-        password_to_hash = password_bytes[:72].decode('utf-8', errors='ignore')
-        print(f"⚠️ Password truncated from {password_length} to 72 bytes")
-    else:
-        password_to_hash = request.password
-    
-    # Проверяем финальную длину перед хешированием
-    final_bytes = password_to_hash.encode('utf-8')
-    print(f"✅ Final password length before hashing: {len(final_bytes)} bytes")
+    # Используем уже обрезанный пароль для хеширования
+    print(f"✅ Final password length before hashing: {len(safe_password.encode('utf-8'))} bytes")
     
     # Создаем пользователя в БД
-    password_hash = get_password_hash(password_to_hash)
+    password_hash = get_password_hash(safe_password)
     db_user = User(
         email=request.email,
         password_hash=password_hash,
