@@ -41,7 +41,7 @@ function LoginPage({ onLogin }) {
       <div className="login-container">
         <div className="login-card">
           <div className="login-header">
-            <h1>Dashboard Service</h1>
+            <h1>Дашборд HeadCorn</h1>
             <p>Персонализированный дашборд с аналитикой</p>
           </div>
 
