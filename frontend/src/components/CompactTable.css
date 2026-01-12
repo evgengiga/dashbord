@@ -1,6 +1,7 @@
 .compact-table-wrapper {
   margin-top: 16px;
-  background: white;
+  background: var(--card-bg);
+  transition: all 0.3s ease;
 }
 
 .compact-table {
@@ -10,26 +11,26 @@
 }
 
 .compact-table thead {
-  background: #f8f9fa;
+  background: var(--bg-tertiary);
 }
 
 .compact-table th {
   padding: 12px 10px;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e0e0e0;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-color);
   font-size: 13px;
 }
 
 .compact-table td {
   padding: 12px 10px;
-  border-bottom: 1px solid #f0f0f0;
-  color: #555;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
 
 .compact-table tbody tr:hover {
-  background: #f8f9fa;
+  background: var(--hover-bg);
 }
 
 .compact-table tbody tr:last-child td {
@@ -56,10 +57,10 @@
   
   .compact-table-wrapper.mobile .compact-table tr {
     margin-bottom: 16px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 12px;
-    background: white;
+    background: var(--card-bg);
   }
   
   .compact-table-wrapper.mobile .compact-table td {
@@ -69,6 +70,7 @@
     position: relative;
     padding-left: 45%;
     font-size: 14px;
+    color: var(--text-primary);
   }
   
   .compact-table-wrapper.mobile .compact-table td:before {
@@ -78,7 +80,7 @@
     width: 40%;
     padding-right: 10px;
     font-weight: 600;
-    color: #666;
+    color: var(--text-secondary);
     font-size: 13px;
   }
   

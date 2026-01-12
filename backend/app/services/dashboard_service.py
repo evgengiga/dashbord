@@ -897,13 +897,14 @@ class DashboardService:
         WITH client_data AS (
             SELECT
                 kontr_name,
-                COUNT(DISTINCT nad_zad_name) AS order_count
+                COUNT(DISTINCT nad_zad_name) AS order_count,
+                SUM(COALESCE(sum_project, 0)) AS total_sum
             FROM (
-                SELECT kontr_name, nad_zad_name, "user", date_create FROM proizv_gr_artema
+                SELECT kontr_name, nad_zad_name, sum_project, "user", date_create FROM proizv_gr_artema
                 WHERE "user" = :user_name
                   AND date_create IS NOT NULL
                 UNION ALL
-                SELECT kontr_name, nad_zad_name, "user", date_create FROM proizv_gr_zheni
+                SELECT kontr_name, nad_zad_name, sum_project, "user", date_create FROM proizv_gr_zheni
                 WHERE "user" = :user_name
                   AND date_create IS NOT NULL
             ) combined
@@ -925,6 +926,7 @@ class DashboardService:
             SELECT
                 kontr_name AS "Клиент",
                 order_count AS "Кол-во заказов",
+                total_sum AS "Сумма",
                 1 AS sort_order
             FROM client_data
             
@@ -933,12 +935,14 @@ class DashboardService:
             SELECT
                 'ИТОГО' AS "Клиент",
                 SUM(order_count) AS "Кол-во заказов",
+                SUM(total_sum) AS "Сумма",
                 2 AS sort_order
             FROM client_data
         )
         SELECT
             "Клиент",
-            "Кол-во заказов"
+            "Кол-во заказов",
+            "Сумма"
         FROM with_total
         ORDER BY
             sort_order,
@@ -946,18 +950,19 @@ class DashboardService:
             CASE WHEN sort_order = 1 THEN "Клиент" END ASC
         """
         
-        # Запрос для details (детальный список заказов с task_id)
+        # Запрос для details (детальный список заказов с task_id, task_name и sum_project)
         details_query = f"""
         SELECT DISTINCT
             kontr_name AS client,
-            nad_zad_name AS order_name,
-            task_id
+            COALESCE(task_name, nad_zad_name) AS order_name,
+            task_id,
+            COALESCE(sum_project, 0) AS sum_project
         FROM (
-            SELECT kontr_name, nad_zad_name, task_id, "user", date_create FROM proizv_gr_artema
+            SELECT kontr_name, nad_zad_name, task_name, task_id, sum_project, "user", date_create FROM proizv_gr_artema
             WHERE "user" = :user_name
               AND date_create IS NOT NULL
             UNION ALL
-            SELECT kontr_name, nad_zad_name, task_id, "user", date_create FROM proizv_gr_zheni
+            SELECT kontr_name, nad_zad_name, task_name, task_id, sum_project, "user", date_create FROM proizv_gr_zheni
             WHERE "user" = :user_name
               AND date_create IS NOT NULL
         ) combined
@@ -973,7 +978,7 @@ class DashboardService:
                 THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
                 ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
             END
-        ORDER BY kontr_name, nad_zad_name
+        ORDER BY kontr_name, task_name
         """
         
         try:

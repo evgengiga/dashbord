@@ -38,7 +38,7 @@
 }
 
 .details-row {
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
 }
 
 .details-content {
@@ -47,7 +47,7 @@
 
 .details-content h4 {
   margin: 0 0 10px 0;
-  color: #333;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
 }
@@ -67,10 +67,18 @@
   border-bottom: none;
 }
 
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
 .order-link {
   color: #007bff;
   text-decoration: none;
   font-size: 13px;
+  flex: 1;
 }
 
 .order-link:hover {
@@ -78,9 +86,16 @@
   color: #0056b3;
 }
 
+.order-sum {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
 .total-row {
   font-weight: bold;
-  background-color: #e3f2fd;
+  background-color: var(--bg-tertiary);
 }
 
 /* Responsive для мобильных */
