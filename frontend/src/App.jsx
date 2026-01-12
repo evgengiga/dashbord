@@ -13,18 +13,19 @@ function App() {
 
   // Применяем тему к document.documentElement и body
   useEffect(() => {
+    console.log('🎨 Applying theme:', theme);
+    
     document.documentElement.setAttribute('data-theme', theme)
     document.body.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
     
     // Явно устанавливаем фон для темной темы
-    if (theme === 'dark') {
-      document.documentElement.style.backgroundColor = '#2b2b2b'
-      document.body.style.backgroundColor = '#2b2b2b'
-    } else {
-      document.documentElement.style.backgroundColor = '#f5f7fa'
-      document.body.style.backgroundColor = '#f5f7fa'
-    }
+    const bgColor = theme === 'dark' ? '#2b2b2b' : '#f5f7fa';
+    document.documentElement.style.backgroundColor = bgColor;
+    document.body.style.backgroundColor = bgColor;
+    
+    console.log('✅ Theme applied. Background color:', bgColor);
+    console.log('✅ Body background:', document.body.style.backgroundColor);
   }, [theme])
 
   // Проверяем наличие токена при загрузке

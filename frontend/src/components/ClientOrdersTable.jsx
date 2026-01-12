@@ -9,6 +9,12 @@ const ClientOrdersTable = ({ data, details, columns }) => {
   console.log('   data:', data);
   console.log('   details:', details);
   console.log('   columns:', columns);
+  
+  // Проверяем типы данных для сумм
+  if (data.length > 0) {
+    console.log('💰 First row sum type:', typeof data[0]['Сумма']);
+    console.log('💰 First row sum value:', data[0]['Сумма']);
+  }
 
   const toggleExpand = (client) => {
     setExpanded(prev => ({
@@ -49,10 +55,14 @@ const ClientOrdersTable = ({ data, details, columns }) => {
                 <tr className={isTotal ? 'total-row' : ''}>
                   {columns.map((col, colIndex) => {
                     const value = row[col];
-                    // Форматируем числа с пробелами
-                    const formattedValue = (col === 'Сумма' && typeof value === 'number') 
-                      ? value.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-                      : value;
+                    // Форматируем числа с пробелами (обрабатываем и строки, и числа)
+                    let formattedValue = value;
+                    if (col === 'Сумма') {
+                      const numValue = typeof value === 'string' ? parseFloat(value) : value;
+                      if (!isNaN(numValue)) {
+                        formattedValue = numValue.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                      }
+                    }
                     
                     return (
                       <td key={colIndex}>
@@ -95,7 +105,11 @@ const ClientOrdersTable = ({ data, details, columns }) => {
                                 {order.order_name}
                               </a>
                               <span className="order-sum">
-                                {(order.sum_project || 0).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ₽
+                                {(() => {
+                                  const sum = order.sum_project || 0;
+                                  const numSum = typeof sum === 'string' ? parseFloat(sum) : sum;
+                                  return numSum.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                                })()} ₽
                               </span>
                             </li>
                           ))}
