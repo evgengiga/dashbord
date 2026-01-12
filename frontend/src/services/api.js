@@ -28,10 +28,27 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Токен истек или невалидный
-      localStorage.removeItem('authToken')
-      localStorage.removeItem('userInfo')
-      window.location.reload()
+      // Проверяем, это запрос логина/регистрации?
+      const isAuthRequest = error.config?.url?.includes('/auth/login') || 
+                            error.config?.url?.includes('/auth/register')
+      
+      if (isAuthRequest) {
+        // Это ошибка логина/регистрации - НЕ делаем reload, просто пробрасываем ошибку
+        return Promise.reject(error)
+      }
+      
+      // Токен истек или невалидный (но это НЕ запрос логина)
+      const token = localStorage.getItem('authToken')
+      if (token) {
+        // Токен есть, но он невалидный - значит истек, делаем reload
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('userInfo')
+        // Проверяем, что мы не на странице логина
+        if (!window.location.pathname.includes('/login') && window.location.pathname !== '/') {
+          window.location.reload()
+        }
+      }
+      // Если токена нет - это нормально для страницы логина, не делаем reload
     }
     return Promise.reject(error)
   }

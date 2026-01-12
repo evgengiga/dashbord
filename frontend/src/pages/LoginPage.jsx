@@ -14,6 +14,13 @@ function LoginPage({ onLogin }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    e.stopPropagation() // Предотвращаем всплытие события
+    
+    // Предотвращаем отправку формы браузером
+    if (e.target && e.target.tagName === 'FORM') {
+      e.target.setAttribute('novalidate', 'novalidate')
+    }
+    
     setError('')
     setLoading(true)
 
@@ -70,7 +77,7 @@ function LoginPage({ onLogin }) {
             <p>Персонализированный дашборд с аналитикой</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="login-form">
+          <form onSubmit={handleSubmit} className="login-form" noValidate>
             <div className="form-group">
               <label htmlFor="email">Email</label>
               <input
