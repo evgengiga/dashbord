@@ -127,8 +127,15 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
     # Получаем ФИО из Planfix
     full_name = planfix_service.get_user_full_name(user_data)
     
+    # Обрезаем пароль до 72 байт (ограничение bcrypt)
+    password_bytes = request.password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_to_hash = password_bytes[:72].decode('utf-8', errors='ignore')
+    else:
+        password_to_hash = request.password
+    
     # Создаем пользователя в БД
-    password_hash = get_password_hash(request.password)
+    password_hash = get_password_hash(password_to_hash)
     db_user = User(
         email=request.email,
         password_hash=password_hash,
