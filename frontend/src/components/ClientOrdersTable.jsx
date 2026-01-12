@@ -77,7 +77,7 @@ const ClientOrdersTable = ({ data, details, columns }) => {
                         <h4>Заказы от клиента: {client}</h4>
                         <ul className="orders-list">
                           {ordersByClient[client].map((order, idx) => (
-                            <li key={idx}>
+                            <li key={idx} className="order-item">
                               <a
                                 href={`https://megamindru.planfix.ru/task/${order.task_id}`}
                                 target="_blank"
@@ -86,6 +86,9 @@ const ClientOrdersTable = ({ data, details, columns }) => {
                               >
                                 {order.order_name}
                               </a>
+                              <span className="order-sum">
+                                {(order.sum_project || 0).toLocaleString('ru-RU')} ₽
+                              </span>
                             </li>
                           ))}
                         </ul>
