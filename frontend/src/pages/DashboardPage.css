@@ -84,24 +84,131 @@
   color: #e91e63;
 }
 
+/* Fiscal year selector */
+.fiscal-year-selector {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.fiscal-year-selector label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.fiscal-year-selector select {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  min-height: 44px; /* Touch-friendly */
+}
+
+.fiscal-year-selector select:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
 /* Responsive */
+@media (max-width: 1024px) {
+  .dashboard-main {
+    padding: 24px 0;
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-main {
-    padding: 20px 0;
+    padding: 16px 0;
   }
   
   .dashboard-welcome {
-    padding: 20px;
+    padding: 16px;
+    margin-bottom: 20px;
   }
   
   .dashboard-welcome h2 {
-    font-size: 24px;
+    font-size: 22px;
+  }
+  
+  .dashboard-welcome p {
+    font-size: 14px;
+  }
+  
+  .fiscal-year-selector {
+    padding: 12px;
+    margin: 0 0 16px 0;
+  }
+  
+  .fiscal-year-selector select {
+    max-width: 100%;
   }
   
   .error-banner {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     text-align: center;
+    padding: 16px;
+  }
+  
+  .no-dashboards-content {
+    padding: 24px;
+  }
+  
+  .no-dashboards-content h3 {
+    font-size: 20px;
+  }
+  
+  .no-dashboards-content p {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-main {
+    padding: 12px 0;
+  }
+  
+  .dashboard-welcome {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .dashboard-welcome h2 {
+    font-size: 18px;
+  }
+  
+  .dashboard-welcome p {
+    font-size: 13px;
+  }
+  
+  .fiscal-year-selector {
+    padding: 10px;
+  }
+  
+  .fiscal-year-selector label {
+    font-size: 13px;
+  }
+  
+  .fiscal-year-selector select {
+    font-size: 13px;
+  }
+  
+  .no-data {
+    padding: 24px 12px;
+  }
+  
+  .no-data p {
+    font-size: 14px;
   }
 }
 

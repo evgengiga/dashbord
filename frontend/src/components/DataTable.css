@@ -87,17 +87,41 @@
 @media (max-width: 600px) {
   .data-table-wrapper {
     -webkit-overflow-scrolling: touch;
+    margin: 0 -12px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .data-table {
+    font-size: 11px;
+    min-width: 450px;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 8px 6px;
+  }
+  
+  .data-table th {
+    font-size: 10px;
   }
   
   .data-table-wrapper::after {
     content: '← Прокрутите →';
     display: block;
     text-align: center;
-    padding: 10px;
-    font-size: 12px;
+    padding: 8px;
+    font-size: 11px;
     color: #999;
     background: #f8f9fa;
     border-top: 1px solid #e0e0e0;
+  }
+}
+
+@media (max-width: 400px) {
+  .data-table {
+    min-width: 380px;
   }
 }
 

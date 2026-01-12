@@ -126,6 +126,76 @@ code {
   100% { transform: rotate(360deg); }
 }
 
+/* Mobile responsive improvements */
+@media (max-width: 1024px) {
+  .container {
+    max-width: 100%;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  
+  .container {
+    padding: 12px;
+  }
+  
+  .card {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    min-height: 44px; /* Touch-friendly */
+    width: 100%; /* Full width on mobile */
+  }
+  
+  .input {
+    padding: 14px 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 10px;
+  }
+  
+  .card {
+    padding: 12px;
+    border-radius: 6px;
+  }
+  
+  .loading {
+    padding: 24px;
+  }
+  
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 2px;
+  }
+}
+
+/* Улучшение touch targets */
+@media (hover: none) and (pointer: coarse) {
+  /* Устройства с touch screen */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
 
 
 
