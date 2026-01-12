@@ -125,7 +125,13 @@ class DashboardService:
         WITH user_data AS (
             -- Объединяем данные из обеих таблиц
             SELECT 
-                'Текущий квартал' as "Период",
+                CONCAT(
+                    'Текущий квартал (',
+                    TO_CHAR(DATE_TRUNC('quarter', NOW()), 'DD.MM.YYYY'),
+                    ' - ',
+                    TO_CHAR(DATE_TRUNC('quarter', NOW() + INTERVAL '3 month') - INTERVAL '1 day', 'DD.MM.YYYY'),
+                    ')'
+                ) as "Период",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
                 COUNT(DISTINCT obrazci.task_id) as "Кол-во образцов",
                 CASE 
@@ -165,7 +171,13 @@ class DashboardService:
             
             -- Прошлый квартал
             SELECT 
-                'Прошлый квартал' as "Период",
+                CONCAT(
+                    'Прошлый квартал (',
+                    TO_CHAR(DATE_TRUNC('quarter', NOW() - INTERVAL '3 month'), 'DD.MM.YYYY'),
+                    ' - ',
+                    TO_CHAR(DATE_TRUNC('quarter', NOW()) - INTERVAL '1 day', 'DD.MM.YYYY'),
+                    ')'
+                ) as "Период",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
                 COUNT(DISTINCT obrazci.task_id) as "Кол-во образцов",
                 CASE 
@@ -205,7 +217,27 @@ class DashboardService:
             
             -- Финансовый год (1 марта - 28 февраля) с учетом выбранного года
             SELECT 
-                'Финансовый год' as "Период",
+                CONCAT(
+                    'Финансовый год (',
+                    TO_CHAR(
+                        CASE 
+                            WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                            THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                            ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1 + {year_offset}, 3, 1)
+                        END,
+                        'DD.MM.YYYY'
+                    ),
+                    ' - ',
+                    TO_CHAR(
+                        CASE 
+                            WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                            THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1) - INTERVAL '1 day'
+                            ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1) - INTERVAL '1 day'
+                        END,
+                        'DD.MM.YYYY'
+                    ),
+                    ')'
+                ) as "Период",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
                 COUNT(DISTINCT obrazci.task_id) as "Кол-во образцов",
                 CASE 
@@ -268,10 +300,10 @@ class DashboardService:
             CONCAT("Конверсия", '%') as "Конверсия"
         FROM user_data
         ORDER BY 
-            CASE "Период"
-                WHEN 'Текущий квартал' THEN 1
-                WHEN 'Прошлый квартал' THEN 2
-                WHEN 'Финансовый год' THEN 3
+            CASE 
+                WHEN "Период" LIKE 'Текущий квартал%' THEN 1
+                WHEN "Период" LIKE 'Прошлый квартал%' THEN 2
+                WHEN "Период" LIKE 'Финансовый год%' THEN 3
             END
         """
         
@@ -304,7 +336,13 @@ class DashboardService:
         WITH user_data AS (
             -- Текущий квартал
             SELECT 
-                'Текущий квартал' as "Период",
+                CONCAT(
+                    'Текущий квартал (',
+                    TO_CHAR(DATE_TRUNC('quarter', NOW()), 'DD.MM.YYYY'),
+                    ' - ',
+                    TO_CHAR(DATE_TRUNC('quarter', NOW() + INTERVAL '3 month') - INTERVAL '1 day', 'DD.MM.YYYY'),
+                    ')'
+                ) as "Период",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
                 COUNT(DISTINCT proizv.task_id) as "Кол-во в производстве",
                 CASE 
@@ -350,7 +388,13 @@ class DashboardService:
             
             -- Прошлый квартал
             SELECT 
-                'Прошлый квартал' as "Период",
+                CONCAT(
+                    'Прошлый квартал (',
+                    TO_CHAR(DATE_TRUNC('quarter', NOW() - INTERVAL '3 month'), 'DD.MM.YYYY'),
+                    ' - ',
+                    TO_CHAR(DATE_TRUNC('quarter', NOW()) - INTERVAL '1 day', 'DD.MM.YYYY'),
+                    ')'
+                ) as "Период",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
                 COUNT(DISTINCT proizv.task_id) as "Кол-во в производстве",
                 CASE 
@@ -396,7 +440,27 @@ class DashboardService:
             
             -- Финансовый год (1 марта - 28 февраля) с учетом выбранного года
             SELECT 
-                'Финансовый год' as "Период",
+                CONCAT(
+                    'Финансовый год (',
+                    TO_CHAR(
+                        CASE 
+                            WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                            THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                            ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1 + {year_offset}, 3, 1)
+                        END,
+                        'DD.MM.YYYY'
+                    ),
+                    ' - ',
+                    TO_CHAR(
+                        CASE 
+                            WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                            THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1) - INTERVAL '1 day'
+                            ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1) - INTERVAL '1 day'
+                        END,
+                        'DD.MM.YYYY'
+                    ),
+                    ')'
+                ) as "Период",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
                 COUNT(DISTINCT proizv.task_id) as "Кол-во в производстве",
                 CASE 
@@ -465,10 +529,10 @@ class DashboardService:
             CONCAT("Конверсия", '%') as "Конверсия"
         FROM user_data
         ORDER BY 
-            CASE "Период"
-                WHEN 'Текущий квартал' THEN 1
-                WHEN 'Прошлый квартал' THEN 2
-                WHEN 'Финансовый год' THEN 3
+            CASE 
+                WHEN "Период" LIKE 'Текущий квартал%' THEN 1
+                WHEN "Период" LIKE 'Прошлый квартал%' THEN 2
+                WHEN "Период" LIKE 'Финансовый год%' THEN 3
             END
         """
         
