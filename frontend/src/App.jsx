@@ -6,6 +6,16 @@ import DashboardPage from './pages/DashboardPage'
 function App() {
   const [token, setToken] = useState(null)
   const [userInfo, setUserInfo] = useState(null)
+  const [theme, setTheme] = useState(() => {
+    // Загружаем тему из localStorage или используем светлую по умолчанию
+    return localStorage.getItem('theme') || 'light'
+  })
+
+  // Применяем тему к document.documentElement
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('theme', theme)
+  }, [theme])
 
   // Проверяем наличие токена при загрузке
   useEffect(() => {
@@ -17,6 +27,10 @@ function App() {
       setUserInfo(JSON.parse(savedUser))
     }
   }, [])
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light')
+  }
 
   const handleLogin = (authToken, user) => {
     setToken(authToken)
@@ -40,7 +54,9 @@ function App() {
         <DashboardPage 
           token={token} 
           userInfo={userInfo} 
-          onLogout={handleLogout} 
+          onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       )}
     </div>

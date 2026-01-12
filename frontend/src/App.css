@@ -6,10 +6,11 @@
 
 /* Header styles */
 .dashboard-header {
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
   padding: 16px 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
 }
 
 .header-content {
@@ -24,7 +25,7 @@
 .header-title {
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .header-user {
@@ -35,11 +36,11 @@
 
 .user-name {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .user-name strong {
-  color: #333;
+  color: var(--text-primary);
   margin-left: 5px;
 }
 
@@ -51,22 +52,23 @@
 }
 
 .dashboard-item {
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
 }
 
 .dashboard-item h2 {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .dashboard-item p {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 20px;
 }
 
