@@ -91,12 +91,13 @@ function LoginPage({ onLogin }) {
                 id="password"
                 type="password"
                 className="input"
-                placeholder={showRegister ? 'Минимум 6 символов' : 'Введите пароль'}
+                placeholder={showRegister ? 'От 6 до 72 символов' : 'Введите пароль'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
                 minLength={6}
+                maxLength={72}
               />
             </div>
 
@@ -113,6 +114,7 @@ function LoginPage({ onLogin }) {
                   required
                   disabled={loading}
                   minLength={6}
+                  maxLength={72}
                 />
               </div>
             )}

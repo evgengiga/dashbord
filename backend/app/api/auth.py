@@ -99,6 +99,14 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
             detail="Пароль должен содержать минимум 6 символов"
         )
     
+    # Проверяем максимальную длину пароля (bcrypt ограничение - 72 байта)
+    # Для безопасности обрезаем до 72 символов (1 символ = 1 байт для ASCII)
+    if len(request.password.encode('utf-8')) > 72:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Пароль не может быть длиннее 72 символов"
+        )
+    
     # Проверяем что пользователь есть в Planfix
     user_data = await planfix_service.get_user_by_email(request.email)
     
