@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './ProductionTimeTable.css';
 
 const ProductionTimeTable = ({ data, columns }) => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Определяем индекс столбца "Изменение"
   const changeColumnIndex = columns.findIndex(col => col === 'Изменение');
 
@@ -33,8 +44,8 @@ const ProductionTimeTable = ({ data, columns }) => {
   };
 
   return (
-    <div className="production-time-table">
-      <table className="data-table">
+    <div className={`production-time-table ${isMobile ? 'mobile' : ''}`}>
+      <table className="responsive-table">
         <thead>
           <tr>
             {columns.map((col, idx) => (
@@ -49,6 +60,7 @@ const ProductionTimeTable = ({ data, columns }) => {
                 <td 
                   key={colIndex}
                   className={getCellClassName(colIndex, row[col])}
+                  data-label={col}
                 >
                   {formatCellValue(colIndex, row[col])}
                 </td>

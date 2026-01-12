@@ -1,5 +1,45 @@
 .production-time-table {
   width: 100%;
+  overflow: visible;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.production-time-table .responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.production-time-table .responsive-table thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.production-time-table .responsive-table th {
+  padding: 14px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.production-time-table .responsive-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #555;
+  font-size: 14px;
+}
+
+.production-time-table .responsive-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.production-time-table .responsive-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 /* Отрицательное значение = уменьшение времени = хорошо = зелёный */
@@ -21,5 +61,74 @@
 .change-negative:hover {
   opacity: 0.8;
   transition: opacity 0.2s;
+}
+
+/* Адаптивный режим - карточки на мобильных */
+@media (max-width: 768px) {
+  .production-time-table.mobile {
+    box-shadow: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .production-time-table.mobile .responsive-table {
+    border: none;
+  }
+
+  .production-time-table.mobile .responsive-table thead {
+    display: none;
+  }
+
+  .production-time-table.mobile .responsive-table,
+  .production-time-table.mobile .responsive-table tbody,
+  .production-time-table.mobile .responsive-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .production-time-table.mobile .responsive-table tr {
+    margin-bottom: 16px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .production-time-table.mobile .responsive-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border: none;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .production-time-table.mobile .responsive-table td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #666;
+    font-size: 13px;
+    margin-right: 12px;
+    flex-shrink: 0;
+    min-width: 40%;
+  }
+
+  .production-time-table.mobile .responsive-table td:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .production-time-table.mobile .responsive-table tbody tr:hover {
+    background: white;
+  }
+  
+  /* Цвета остаются на мобильных */
+  .production-time-table.mobile .change-positive,
+  .production-time-table.mobile .change-negative {
+    display: flex;
+    width: 100%;
+  }
 }
 
