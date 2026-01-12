@@ -1,0 +1,130 @@
+.compact-table-wrapper {
+  overflow-x: auto;
+  margin-top: 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  background: white;
+}
+
+.compact-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.compact-table thead {
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.compact-table th {
+  padding: 12px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.compact-table td {
+  padding: 10px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #555;
+}
+
+.compact-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.compact-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.period-col {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Мобильная оптимизация */
+.compact-table-wrapper.mobile {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  margin: 0 -12px;
+  overflow-x: visible;
+}
+
+.compact-table-wrapper.mobile .compact-table {
+  font-size: 10px;
+}
+
+.compact-table-wrapper.mobile .compact-table th {
+  padding: 8px 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.compact-table-wrapper.mobile .compact-table td {
+  padding: 8px 4px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.compact-table-wrapper.mobile .period-col {
+  font-size: 9px;
+  min-width: 80px;
+}
+
+@media (max-width: 768px) {
+  .compact-table {
+    font-size: 11px;
+  }
+  
+  .compact-table th {
+    padding: 8px 6px;
+    font-size: 10px;
+  }
+  
+  .compact-table td {
+    padding: 8px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .compact-table {
+    font-size: 10px;
+  }
+  
+  .compact-table th {
+    padding: 6px 3px;
+    font-size: 9px;
+  }
+  
+  .compact-table td {
+    padding: 6px 3px;
+  }
+  
+  .period-col {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 380px) {
+  .compact-table {
+    font-size: 9px;
+  }
+  
+  .compact-table th,
+  .compact-table td {
+    padding: 5px 2px;
+  }
+  
+  .compact-table th {
+    font-size: 8px;
+  }
+}
+

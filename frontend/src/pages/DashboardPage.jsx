@@ -4,6 +4,7 @@ import DataTable from '../components/DataTable'
 import OverdueTasksTable from '../components/OverdueTasksTable'
 import ClientOrdersTable from '../components/ClientOrdersTable'
 import ProductionTimeTable from '../components/ProductionTimeTable'
+import CompactTable from '../components/CompactTable'
 import './DashboardPage.css'
 
 function DashboardPage({ token, userInfo, onLogout }) {
@@ -11,6 +12,17 @@ function DashboardPage({ token, userInfo, onLogout }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [fiscalYear, setFiscalYear] = useState('current') // 'current' or 'previous'
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
+
+  // Отслеживаем изменение размера экрана
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     loadDashboard()
@@ -162,6 +174,11 @@ function DashboardPage({ token, userInfo, onLogout }) {
                               columns={item.columns}
                             />
                           );
+                        }
+                        
+                        // Компактная таблица для таблиц конверсий на мобильных
+                        if ((item.id === 'conversions' || item.id === 'production_conversions') && isMobile) {
+                          return <CompactTable data={item.data} columns={item.columns} isMobile={true} />;
                         }
                         
                         // Обычная таблица для всех остальных
