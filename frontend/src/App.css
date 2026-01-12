@@ -2,6 +2,7 @@
   min-height: 100vh;
   overflow-x: hidden;
   max-width: 100vw;
+  background: var(--bg-primary);
 }
 
 /* Header styles */

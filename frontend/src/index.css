@@ -98,6 +98,7 @@ code {
   padding: 20px;
   overflow-x: hidden;
   box-sizing: border-box;
+  background: var(--bg-primary);
 }
 
 .card {
