@@ -4,6 +4,12 @@ import './ClientOrdersTable.css';
 const ClientOrdersTable = ({ data, details, columns }) => {
   const [expanded, setExpanded] = useState({});
 
+  // Debug logging
+  console.log('📦 ClientOrdersTable received:');
+  console.log('   data:', data);
+  console.log('   details:', details);
+  console.log('   columns:', columns);
+
   const toggleExpand = (client) => {
     setExpanded(prev => ({
       ...prev,
@@ -12,13 +18,15 @@ const ClientOrdersTable = ({ data, details, columns }) => {
   };
 
   // Группируем заказы по клиентам
-  const ordersByClient = details.reduce((acc, order) => {
+  const ordersByClient = (details || []).reduce((acc, order) => {
     if (!acc[order.client]) {
       acc[order.client] = [];
     }
     acc[order.client].push(order);
     return acc;
   }, {});
+
+  console.log('   ordersByClient:', ordersByClient);
 
   return (
     <div className="client-orders-container">

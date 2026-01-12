@@ -30,6 +30,12 @@ function DashboardPage({ token, userInfo, onLogout }) {
         console.log('📋 Overdue tasks item:', overdueItem)
         console.log('📋 Overdue details:', overdueItem.details)
       }
+      // Логируем заказы клиентов
+      const clientOrdersItem = data.items?.find(item => item.id === 'client_orders')
+      if (clientOrdersItem) {
+        console.log('📦 Client orders item:', clientOrdersItem)
+        console.log('📦 Client orders details:', clientOrdersItem.details)
+      }
       setDashboardData(data)
     } catch (err) {
       console.error('Dashboard load error:', err)
