@@ -4,8 +4,11 @@ import './LoginPage.css'
 
 function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showRegister, setShowRegister] = useState(false)
+  const [passwordConfirm, setPasswordConfirm] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -13,14 +16,34 @@ function LoginPage({ onLogin }) {
     setLoading(true)
 
     try {
-      const response = await authAPI.login(email)
-      
-      const userInfo = {
-        name: response.user_name,
-        email: response.user_email,
+      if (showRegister) {
+        // Регистрация (первый вход)
+        const response = await authAPI.register(email, password, passwordConfirm)
+        
+        const userInfo = {
+          name: response.user_name,
+          email: response.user_email,
+        }
+        
+        onLogin(response.access_token, userInfo)
+      } else {
+        // Обычный вход
+        const response = await authAPI.login(email, password)
+        
+        if (response.first_login) {
+          // Первый вход - показываем форму регистрации
+          setShowRegister(true)
+          setError('')
+        } else {
+          // Успешный вход
+          const userInfo = {
+            name: response.user_name,
+            email: response.user_email,
+          }
+          
+          onLogin(response.access_token, userInfo)
+        }
       }
-      
-      onLogin(response.access_token, userInfo)
     } catch (err) {
       console.error('Login error:', err)
       
@@ -60,6 +83,40 @@ function LoginPage({ onLogin }) {
               />
             </div>
 
+            <div className="form-group">
+              <label htmlFor="password">
+                {showRegister ? 'Придумайте пароль' : 'Пароль'}
+              </label>
+              <input
+                id="password"
+                type="password"
+                className="input"
+                placeholder={showRegister ? 'Минимум 6 символов' : 'Введите пароль'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                minLength={6}
+              />
+            </div>
+
+            {showRegister && (
+              <div className="form-group">
+                <label htmlFor="passwordConfirm">Повторите пароль</label>
+                <input
+                  id="passwordConfirm"
+                  type="password"
+                  className="input"
+                  placeholder="Повторите пароль"
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  required
+                  disabled={loading}
+                  minLength={6}
+                />
+              </div>
+            )}
+
             {error && (
               <div className="error-message">
                 {error}
@@ -74,10 +131,10 @@ function LoginPage({ onLogin }) {
               {loading ? (
                 <>
                   <div className="spinner-small"></div>
-                  <span>Вход...</span>
+                  <span>{showRegister ? 'Регистрация...' : 'Вход...'}</span>
                 </>
               ) : (
-                'Войти'
+                showRegister ? 'Зарегистрироваться' : 'Войти'
               )}
             </button>
           </form>

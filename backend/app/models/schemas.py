@@ -8,6 +8,14 @@ from typing import List, Dict, Any, Optional
 class LoginRequest(BaseModel):
     """Запрос на вход"""
     email: EmailStr
+    password: str
+
+
+class RegisterRequest(BaseModel):
+    """Запрос на регистрацию (первый вход)"""
+    email: EmailStr
+    password: str
+    password_confirm: str
 
 
 class LoginResponse(BaseModel):
@@ -16,6 +24,7 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     user_name: str
     user_email: str
+    first_login: bool = False  # True если это первый вход и нужно установить пароль
 
 
 class UserInfo(BaseModel):
