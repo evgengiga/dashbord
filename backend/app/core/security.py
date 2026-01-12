@@ -6,6 +6,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
+import bcrypt
 from .config import settings
 
 # Контекст для хеширования паролей
@@ -14,7 +15,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Проверяет пароль
+    Проверяет пароль используя bcrypt напрямую
     
     Args:
         plain_password: Обычный пароль
@@ -23,26 +24,39 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True если пароль верный, False иначе
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Обрезаем пароль до 72 байт перед проверкой
+    password_bytes = plain_password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password_bytes = password_bytes[:72]
+    
+    # Используем bcrypt напрямую
+    hashed_bytes = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
 def get_password_hash(password: str) -> str:
     """
-    Хеширует пароль
+    Хеширует пароль используя bcrypt напрямую (обход passlib для избежания проблем с длиной)
     
     Args:
-        password: Обычный пароль
+        password: Обычный пароль (должен быть <= 72 байта)
         
     Returns:
-        Хешированный пароль
+        Хешированный пароль в формате bcrypt
     """
     # Bcrypt ограничение - 72 байта, обрезаем если нужно
     password_bytes = password.encode('utf-8')
     if len(password_bytes) > 72:
-        # Обрезаем до 72 байт и декодируем обратно
-        password = password_bytes[:72].decode('utf-8', errors='ignore')
+        # Обрезаем до 72 байт
+        password_bytes = password_bytes[:72]
+        print(f"⚠️ Password truncated to 72 bytes in get_password_hash")
     
-    return pwd_context.hash(password)
+    # Используем bcrypt напрямую, обходя passlib
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    
+    # Возвращаем как строку (bcrypt возвращает bytes)
+    return hashed.decode('utf-8')
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
