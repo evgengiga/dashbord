@@ -345,7 +345,7 @@ class DashboardService:
                     ')'
                 ) as "Период",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
-                COUNT(DISTINCT proizv.task_id) as "Кол-во в производстве",
+                COUNT(DISTINCT proizv.task_id) as "Кол-во производств",
                 CASE 
                     WHEN COUNT(DISTINCT proscheti.task_id) = 0 THEN 0
                     ELSE ROUND(
@@ -397,7 +397,7 @@ class DashboardService:
                     ')'
                 ) as "Период",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
-                COUNT(DISTINCT proizv.task_id) as "Кол-во в производстве",
+                COUNT(DISTINCT proizv.task_id) as "Кол-во производств",
                 CASE 
                     WHEN COUNT(DISTINCT proscheti.task_id) = 0 THEN 0
                     ELSE ROUND(
@@ -463,7 +463,7 @@ class DashboardService:
                     ')'
                 ) as "Период",
                 COUNT(DISTINCT proscheti.task_id) as "Кол-во КП",
-                COUNT(DISTINCT proizv.task_id) as "Кол-во в производстве",
+                COUNT(DISTINCT proizv.task_id) as "Кол-во производств",
                 CASE 
                     WHEN COUNT(DISTINCT proscheti.task_id) = 0 THEN 0
                     ELSE ROUND(
@@ -526,7 +526,7 @@ class DashboardService:
         SELECT 
             "Период",
             "Кол-во КП",
-            "Кол-во в производстве",
+            "Кол-во производств",
             CONCAT("Конверсия", '%') as "Конверсия"
         FROM user_data
         ORDER BY 
