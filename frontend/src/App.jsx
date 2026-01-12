@@ -16,6 +16,15 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme)
     document.body.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
+    
+    // Явно устанавливаем фон для темной темы
+    if (theme === 'dark') {
+      document.documentElement.style.backgroundColor = '#2b2b2b'
+      document.body.style.backgroundColor = '#2b2b2b'
+    } else {
+      document.documentElement.style.backgroundColor = '#f5f7fa'
+      document.body.style.backgroundColor = '#f5f7fa'
+    }
   }, [theme])
 
   // Проверяем наличие токена при загрузке

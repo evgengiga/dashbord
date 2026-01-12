@@ -47,28 +47,36 @@ const ClientOrdersTable = ({ data, details, columns }) => {
             return (
               <React.Fragment key={rowIndex}>
                 <tr className={isTotal ? 'total-row' : ''}>
-                  {columns.map((col, colIndex) => (
-                    <td key={colIndex}>
-                      {colIndex === 0 ? (
-                        // Первая колонка: добавляем стрелочку перед названием клиента
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {!isTotal && hasOrders && (
-                            <button
-                              className="expand-btn"
-                              onClick={() => toggleExpand(client)}
-                              title={expanded[client] ? 'Скрыть заказы' : 'Показать заказы'}
-                            >
-                              {expanded[client] ? '▲' : '▼'}
-                            </button>
-                          )}
-                          <span>{row[col]}</span>
-                        </div>
-                      ) : (
-                        // Остальные колонки: просто значение
-                        row[col]
-                      )}
-                    </td>
-                  ))}
+                  {columns.map((col, colIndex) => {
+                    const value = row[col];
+                    // Форматируем числа с пробелами
+                    const formattedValue = (col === 'Сумма' && typeof value === 'number') 
+                      ? value.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                      : value;
+                    
+                    return (
+                      <td key={colIndex}>
+                        {colIndex === 0 ? (
+                          // Первая колонка: добавляем стрелочку перед названием клиента
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {!isTotal && hasOrders && (
+                              <button
+                                className="expand-btn"
+                                onClick={() => toggleExpand(client)}
+                                title={expanded[client] ? 'Скрыть заказы' : 'Показать заказы'}
+                              >
+                                {expanded[client] ? '▲' : '▼'}
+                              </button>
+                            )}
+                            <span>{formattedValue}</span>
+                          </div>
+                        ) : (
+                          // Остальные колонки: форматированное значение
+                          formattedValue
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
                 {!isTotal && expanded[client] && hasOrders && (
                   <tr className="details-row">
@@ -87,7 +95,7 @@ const ClientOrdersTable = ({ data, details, columns }) => {
                                 {order.order_name}
                               </a>
                               <span className="order-sum">
-                                {(order.sum_project || 0).toLocaleString('ru-RU')} ₽
+                                {(order.sum_project || 0).toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ₽
                               </span>
                             </li>
                           ))}
