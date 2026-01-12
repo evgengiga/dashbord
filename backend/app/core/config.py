@@ -42,7 +42,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         """Возвращает список разрешенных origins для CORS"""
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        # Если указан "*", разрешаем все origins (только для отладки!)
+        if self.CORS_ORIGINS.strip() == "*":
+            return ["*"]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
     
     class Config:
         env_file = ".env"
