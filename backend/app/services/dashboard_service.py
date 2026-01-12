@@ -898,7 +898,7 @@ class DashboardService:
             SELECT
                 kontr_name,
                 COUNT(DISTINCT CASE WHEN nad_zad_name IS NOT NULL THEN nad_zad_name END) AS order_count,
-                SUM(COALESCE(CAST(sum_project AS NUMERIC), 0)) AS total_sum
+                SUM(COALESCE(sum_project, 0)) AS total_sum
             FROM (
                 SELECT kontr_name, nad_zad_name, sum_project, "user", date_create FROM proizv_gr_artema
                 WHERE "user" = :user_name
@@ -952,11 +952,11 @@ class DashboardService:
         
         # Запрос для details (детальный список заказов с task_id, task_name и sum_project)
         details_query = f"""
-        SELECT DISTINCT
+        SELECT 
             kontr_name AS client,
-            COALESCE(task_name, nad_zad_name, 'Без названия') AS order_name,
+            COALESCE(NULLIF(task_name, ''), nad_zad_name, 'Без названия') AS order_name,
             task_id,
-            COALESCE(CAST(sum_project AS NUMERIC), 0) AS sum_project
+            COALESCE(sum_project, 0) AS sum_project
         FROM (
             SELECT kontr_name, nad_zad_name, task_name, task_id, sum_project, "user", date_create FROM proizv_gr_artema
             WHERE "user" = :user_name
@@ -978,7 +978,7 @@ class DashboardService:
                 THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
                 ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
             END
-        ORDER BY kontr_name, order_name
+        ORDER BY kontr_name, task_name
         """
         
         try:
