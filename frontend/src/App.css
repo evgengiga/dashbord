@@ -58,6 +58,11 @@
   border-color: #2196F3;
 }
 
+.status-filter:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .user-name {
   font-size: 14px;
   color: var(--text-secondary);

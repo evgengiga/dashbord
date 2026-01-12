@@ -12,10 +12,40 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [orderStatus, setOrderStatus] = useState('active') // 'active', 'completed', 'all'
+  const [clientOrdersLoading, setClientOrdersLoading] = useState(false) // Локальная загрузка для заказов
 
   useEffect(() => {
     loadDashboard()
-  }, [orderStatus]) // Перезагружаем при изменении статуса
+  }, []) // Загружаем только при первой загрузке
+
+  // Отдельная функция для загрузки только заказов клиентов
+  const loadClientOrders = async (status) => {
+    setClientOrdersLoading(true)
+    
+    try {
+      const data = await dashboardAPI.getDashboard('current', status)
+      const clientOrdersItem = data.items?.find(item => item.id === 'client_orders')
+      
+      if (clientOrdersItem && dashboardData) {
+        // Обновляем только блок заказов клиентов, не трогая остальные данные
+        setDashboardData(prevData => ({
+          ...prevData,
+          items: prevData.items.map(item => 
+            item.id === 'client_orders' ? clientOrdersItem : item
+          )
+        }))
+      }
+    } catch (err) {
+      console.error('Client orders load error:', err)
+    } finally {
+      setClientOrdersLoading(false)
+    }
+  }
+
+  const handleOrderStatusChange = (newStatus) => {
+    setOrderStatus(newStatus)
+    loadClientOrders(newStatus)
+  }
 
   const loadDashboard = async () => {
     setLoading(true)
@@ -134,8 +164,9 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
                                 <select 
                                   id="order-status-filter"
                                   value={orderStatus} 
-                                  onChange={(e) => setOrderStatus(e.target.value)}
+                                  onChange={(e) => handleOrderStatusChange(e.target.value)}
                                   className="status-filter"
+                                  disabled={clientOrdersLoading}
                                 >
                                   <option value="active">Активные заказы</option>
                                   <option value="completed">Завершенные заказы</option>
@@ -143,11 +174,19 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
                                 </select>
                               </div>
                               
-                              <ClientOrdersTable 
-                                data={item.data} 
-                                details={item.details || []} 
-                                columns={item.columns}
-                              />
+                              {/* Локальный индикатор загрузки только для этого блока */}
+                              {clientOrdersLoading ? (
+                                <div className="client-orders-loading">
+                                  <div className="spinner-small"></div>
+                                  <p>Загрузка данных...</p>
+                                </div>
+                              ) : (
+                                <ClientOrdersTable 
+                                  data={item.data} 
+                                  details={item.details || []} 
+                                  columns={item.columns}
+                                />
+                              )}
                             </>
                           );
                         }
