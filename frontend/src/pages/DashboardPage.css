@@ -14,21 +14,22 @@
 .dashboard-welcome {
   margin-bottom: 30px;
   padding: 24px;
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
 }
 
 .dashboard-welcome h2 {
   font-size: 28px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .dashboard-welcome p {
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .error-banner {
@@ -46,7 +47,7 @@
 .no-data {
   text-align: center;
   padding: 40px 20px;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .no-data p {
@@ -62,21 +63,22 @@
 .no-dashboards-content {
   max-width: 600px;
   margin: 0 auto;
-  background: white;
+  background: var(--card-bg);
   padding: 40px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
 }
 
 .no-dashboards-content h3 {
   font-size: 24px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 16px;
 }
 
 .no-dashboards-content p {
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
@@ -92,16 +94,17 @@
 .fiscal-year-selector {
   margin-bottom: 20px;
   padding: 16px;
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
 }
 
 .fiscal-year-selector label {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
@@ -110,16 +113,19 @@
   max-width: 400px;
   padding: 10px 12px;
   font-size: 14px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: white;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   min-height: 44px; /* Touch-friendly */
+  transition: all 0.3s ease;
 }
 
 .fiscal-year-selector select:focus {
   outline: none;
   border-color: #2196F3;
+  background: var(--bg-tertiary);
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 

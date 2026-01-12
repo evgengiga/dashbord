@@ -13,7 +13,7 @@
 }
 
 .login-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   overflow: hidden;
@@ -62,7 +62,7 @@
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .btn-large {
@@ -95,15 +95,15 @@
 }
 
 .login-footer {
-  background: #f8f9fa;
+  background: var(--bg-tertiary);
   padding: 20px 30px;
   text-align: center;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
 }
 
 .login-footer p {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 
