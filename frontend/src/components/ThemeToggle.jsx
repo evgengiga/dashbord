@@ -27,7 +27,7 @@ const ThemeToggle = ({ theme, onToggle }) => {
         </svg>
       )}
       <span className="theme-toggle-text">
-        {theme === 'light' ? 'Темная' : 'Светлая'}
+        {theme === 'light' ? 'Перейти в ночной режим' : 'Перейти в дневной режим'}
       </span>
     </button>
   );
