@@ -1,24 +1,16 @@
 .compact-table-wrapper {
-  overflow-x: auto;
   margin-top: 16px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
   background: white;
 }
 
 .compact-table {
   width: 100%;
-  max-width: 100%;
   border-collapse: collapse;
   font-size: 14px;
-  table-layout: auto;
 }
 
 .compact-table thead {
   background: #f8f9fa;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .compact-table th {
@@ -27,12 +19,11 @@
   font-weight: 600;
   color: #333;
   border-bottom: 2px solid #e0e0e0;
-  white-space: nowrap;
   font-size: 13px;
 }
 
 .compact-table td {
-  padding: 10px;
+  padding: 12px 10px;
   border-bottom: 1px solid #f0f0f0;
   color: #555;
 }
@@ -47,100 +38,53 @@
 
 .period-col {
   font-weight: 500;
-  white-space: nowrap;
 }
 
-/* Мобильная оптимизация */
-.compact-table-wrapper.mobile {
-  border-radius: 0;
-  border-left: none;
-  border-right: none;
-  margin: 0;
-  overflow-x: hidden;
-  width: 100%;
-}
-
-.compact-table-wrapper.mobile .compact-table {
-  font-size: 13px;
-  width: 100%;
-  table-layout: fixed;
-}
-
-.compact-table-wrapper.mobile .compact-table th {
-  padding: 10px 6px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.compact-table-wrapper.mobile .compact-table td {
-  padding: 10px 6px;
-  white-space: normal;
-  word-break: break-word;
-  font-size: 13px;
-}
-
-.compact-table-wrapper.mobile .period-col {
-  font-size: 12px;
-  width: 40%;
-}
-
+/* Мобильная адаптация - карточки вместо таблицы */
 @media (max-width: 768px) {
-  .compact-table {
-    font-size: 13px;
-    table-layout: fixed;
+  .compact-table-wrapper.mobile .compact-table thead {
+    display: none;
+  }
+  
+  .compact-table-wrapper.mobile .compact-table,
+  .compact-table-wrapper.mobile .compact-table tbody,
+  .compact-table-wrapper.mobile .compact-table tr,
+  .compact-table-wrapper.mobile .compact-table td {
+    display: block;
     width: 100%;
   }
   
-  .compact-table th {
-    padding: 10px 6px;
-    font-size: 11px;
+  .compact-table-wrapper.mobile .compact-table tr {
+    margin-bottom: 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px;
+    background: white;
   }
   
-  .compact-table td {
-    padding: 10px 6px;
+  .compact-table-wrapper.mobile .compact-table td {
+    text-align: left;
+    padding: 8px 0;
+    border-bottom: none;
+    position: relative;
+    padding-left: 45%;
+    font-size: 14px;
+  }
+  
+  .compact-table-wrapper.mobile .compact-table td:before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 40%;
+    padding-right: 10px;
+    font-weight: 600;
+    color: #666;
     font-size: 13px;
   }
   
-  .period-col {
-    width: 40%;
+  .compact-table-wrapper.mobile .compact-table td:last-child {
+    padding-bottom: 0;
   }
 }
 
-@media (max-width: 480px) {
-  .compact-table {
-    font-size: 12px;
-  }
-  
-  .compact-table th {
-    padding: 8px 4px;
-    font-size: 10px;
-  }
-  
-  .compact-table td {
-    padding: 8px 4px;
-    font-size: 12px;
-  }
-  
-  .period-col {
-    font-size: 11px;
-    width: 38%;
-  }
-}
-
-@media (max-width: 380px) {
-  .compact-table {
-    font-size: 11px;
-  }
-  
-  .compact-table th {
-    padding: 8px 3px;
-    font-size: 9px;
-  }
-  
-  .compact-table td {
-    padding: 8px 3px;
-    font-size: 11px;
-  }
-}
 

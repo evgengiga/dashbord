@@ -53,7 +53,11 @@ const CompactTable = ({ data, columns, isMobile }) => {
           {data.map((row, rowIndex) => (
             <tr key={rowIndex}>
               {columns.map((col, colIndex) => (
-                <td key={colIndex} className={colIndex === 0 ? 'period-col' : ''}>
+                <td 
+                  key={colIndex} 
+                  className={colIndex === 0 ? 'period-col' : ''}
+                  data-label={isMobile ? getMobileColumnName(col) : col}
+                >
                   {colIndex === 0 ? shortenPeriodValue(row[col]) : row[col]}
                 </td>
               ))}
