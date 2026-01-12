@@ -74,16 +74,41 @@
   gap: 12px;
 }
 
+.order-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
 .order-link {
   color: #007bff;
   text-decoration: none;
   font-size: 13px;
-  flex: 1;
 }
 
 .order-link:hover {
   text-decoration: underline;
   color: #0056b3;
+}
+
+.order-status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  display: inline-block;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.status-completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-active {
+  background-color: #fff3cd;
+  color: #856404;
 }
 
 .order-sum {

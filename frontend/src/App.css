@@ -35,6 +35,29 @@
   gap: 15px;
 }
 
+.status-filter {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 40px;
+  transition: all 0.3s ease;
+}
+
+.status-filter:hover {
+  border-color: var(--border-hover);
+  background: var(--hover-bg);
+}
+
+.status-filter:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
 .user-name {
   font-size: 14px;
   color: var(--text-secondary);

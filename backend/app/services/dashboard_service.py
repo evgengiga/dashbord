@@ -8,13 +8,14 @@ from ..core.database import execute_query
 class DashboardService:
     """Сервис для получения данных дашбордов"""
     
-    def get_dashboard_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict[str, Any]]:
+    def get_dashboard_data(self, user_full_name: str, fiscal_year: str = "current", order_status: str = "active") -> List[Dict[str, Any]]:
         """
         Получает все данные дашборда для конкретного пользователя
         
         Args:
             user_full_name: Полное ФИО пользователя
             fiscal_year: "current" для текущего года, "previous" для прошлого
+            order_status: "active" для активных заказов, "completed" для завершенных, "all" для всех
             
         Returns:
             Список элементов дашборда с данными
@@ -78,7 +79,7 @@ class DashboardService:
             })
         
         # 6. Заказы от клиентов по финансовому году
-        client_orders_data = self._get_client_orders_data(user_full_name, fiscal_year)
+        client_orders_data = self._get_client_orders_data(user_full_name, fiscal_year, order_status)
         if client_orders_data and client_orders_data.get("summary"):
             dashboard_items.append({
                 "id": "client_orders",
@@ -878,7 +879,7 @@ class DashboardService:
             traceback.print_exc()
             return []
     
-    def _get_client_orders_data(self, user_full_name: str, fiscal_year: str = "current") -> Dict:
+    def _get_client_orders_data(self, user_full_name: str, fiscal_year: str = "current", status_filter: str = "active") -> Dict:
         """
         Получает данные по заказам от клиентов для пользователя за финансовый год
         Возвращает summary (таблица) и details (список заказов по клиентам)
@@ -886,11 +887,20 @@ class DashboardService:
         Args:
             user_full_name: ФИО пользователя
             fiscal_year: "current" или "previous"
+            status_filter: "active" (не завершенные) или "completed" (завершенные)
         """
-        print(f"🔍 Executing client orders query for user: '{user_full_name}', fiscal year: {fiscal_year}")
+        print(f"🔍 Executing client orders query for user: '{user_full_name}', fiscal year: {fiscal_year}, status: {status_filter}")
         
         # Определяем смещение для финансового года
         year_offset = 0 if fiscal_year == "current" else -1
+        
+        # Определяем условие фильтрации по статусу
+        status_condition = ""
+        if status_filter == "active":
+            status_condition = "AND status IS NOT NULL AND status != 'Завершенная'"
+        elif status_filter == "completed":
+            status_condition = "AND status = 'Завершенная'"
+        # Для "all" не добавляем условие фильтрации
         
         # Запрос для summary (сводная таблица по клиентам с суммой)
         summary_query = f"""
@@ -950,19 +960,20 @@ class DashboardService:
             CASE WHEN sort_order = 1 THEN "Клиент" END ASC
         """
         
-        # Запрос для details (детальный список заказов с task_id, task_name и sum_project)
+        # Запрос для details (детальный список заказов с task_id, task_name, sum_project и status)
         details_query = f"""
         SELECT 
             kontr_name AS client,
             COALESCE(NULLIF(task_name, ''), nad_zad_name, 'Без названия') AS order_name,
             task_id,
-            COALESCE(sum_project, 0) AS sum_project
+            COALESCE(sum_project, 0) AS sum_project,
+            COALESCE(status, 'Без статуса') AS status
         FROM (
-            SELECT kontr_name, nad_zad_name, task_name, task_id, sum_project, "user", date_create FROM proizv_gr_artema
+            SELECT kontr_name, nad_zad_name, task_name, task_id, sum_project, status, "user", date_create FROM proizv_gr_artema
             WHERE "user" = :user_name
               AND date_create IS NOT NULL
             UNION ALL
-            SELECT kontr_name, nad_zad_name, task_name, task_id, sum_project, "user", date_create FROM proizv_gr_zheni
+            SELECT kontr_name, nad_zad_name, task_name, task_id, sum_project, status, "user", date_create FROM proizv_gr_zheni
             WHERE "user" = :user_name
               AND date_create IS NOT NULL
         ) combined
@@ -978,6 +989,7 @@ class DashboardService:
                 THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
                 ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
             END
+        {status_condition}
         ORDER BY kontr_name, task_name
         """
         

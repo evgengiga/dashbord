@@ -96,14 +96,21 @@ const ClientOrdersTable = ({ data, details, columns }) => {
                         <ul className="orders-list">
                           {ordersByClient[client].map((order, idx) => (
                             <li key={idx} className="order-item">
-                              <a
-                                href={`https://megamindru.planfix.ru/task/${order.task_id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="order-link"
-                              >
-                                {order.order_name}
-                              </a>
+                              <div className="order-info">
+                                <a
+                                  href={`https://megamindru.planfix.ru/task/${order.task_id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="order-link"
+                                >
+                                  {order.order_name}
+                                </a>
+                                {order.status && (
+                                  <span className={`order-status ${order.status === 'Завершенная' ? 'status-completed' : 'status-active'}`}>
+                                    {order.status}
+                                  </span>
+                                )}
+                              </div>
                               <span className="order-sum">
                                 {(() => {
                                   const sum = order.sum_project || 0;

@@ -14,6 +14,7 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 @router.get("/", response_model=DashboardResponse)
 async def get_dashboard(
     fiscal_year: str = "current",  # "current" или "previous"
+    order_status: str = "active",  # "active", "completed" или "all"
     current_user: dict = Depends(get_current_user_from_token)
 ):
     """
@@ -21,13 +22,14 @@ async def get_dashboard(
     
     Args:
         fiscal_year: "current" для текущего финансового года, "previous" для прошлого
+        order_status: "active" для активных заказов, "completed" для завершенных, "all" для всех
         
     Все SQL-запросы автоматически фильтруются по ФИО пользователя
     """
     user_full_name = current_user.get("full_name")
     
     # Получаем данные дашборда
-    dashboard_items = dashboard_service.get_dashboard_data(user_full_name, fiscal_year)
+    dashboard_items = dashboard_service.get_dashboard_data(user_full_name, fiscal_year, order_status)
     
     return DashboardResponse(
         user_name=user_full_name,

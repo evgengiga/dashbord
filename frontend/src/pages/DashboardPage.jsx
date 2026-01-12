@@ -11,17 +11,18 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [orderStatus, setOrderStatus] = useState('active') // 'active', 'completed', 'all'
 
   useEffect(() => {
     loadDashboard()
-  }, [])
+  }, [orderStatus]) // Перезагружаем при изменении статуса
 
   const loadDashboard = async () => {
     setLoading(true)
     setError('')
 
     try {
-      const data = await dashboardAPI.getDashboard('current')
+      const data = await dashboardAPI.getDashboard('current', orderStatus)
       console.log('📊 Dashboard data received:', data)
       console.log('📊 Items:', data.items)
       // Логируем просроченные задачи отдельно
@@ -54,6 +55,18 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
             <h1 className="header-title">📊 Dashboard</h1>
           </div>
           <div className="header-user">
+            {/* Переключатель статуса заказов */}
+            <select 
+              value={orderStatus} 
+              onChange={(e) => setOrderStatus(e.target.value)}
+              className="status-filter"
+              title="Фильтр по статусу заказов"
+            >
+              <option value="active">Активные заказы</option>
+              <option value="completed">Завершенные заказы</option>
+              <option value="all">Все заказы</option>
+            </select>
+            
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
             <span className="user-name">
               <strong>{userInfo?.name || 'Пользователь'}</strong>
