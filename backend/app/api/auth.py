@@ -129,10 +129,18 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
     
     # Обрезаем пароль до 72 байт (ограничение bcrypt)
     password_bytes = request.password.encode('utf-8')
-    if len(password_bytes) > 72:
+    password_length = len(password_bytes)
+    print(f"🔐 Password length: {password_length} bytes, original length: {len(request.password)} chars")
+    
+    if password_length > 72:
         password_to_hash = password_bytes[:72].decode('utf-8', errors='ignore')
+        print(f"⚠️ Password truncated from {password_length} to 72 bytes")
     else:
         password_to_hash = request.password
+    
+    # Проверяем финальную длину перед хешированием
+    final_bytes = password_to_hash.encode('utf-8')
+    print(f"✅ Final password length before hashing: {len(final_bytes)} bytes")
     
     # Создаем пользователя в БД
     password_hash = get_password_hash(password_to_hash)

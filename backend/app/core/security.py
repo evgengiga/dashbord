@@ -31,11 +31,17 @@ def get_password_hash(password: str) -> str:
     Хеширует пароль
     
     Args:
-        password: Обычный пароль (должен быть <= 72 байта)
+        password: Обычный пароль
         
     Returns:
         Хешированный пароль
     """
+    # Bcrypt ограничение - 72 байта, обрезаем если нужно
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        # Обрезаем до 72 байт и декодируем обратно
+        password = password_bytes[:72].decode('utf-8', errors='ignore')
+    
     return pwd_context.hash(password)
 
 
