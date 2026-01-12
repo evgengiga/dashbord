@@ -11,9 +11,10 @@ function App() {
     return localStorage.getItem('theme') || 'light'
   })
 
-  // Применяем тему к document.documentElement
+  // Применяем тему к document.documentElement и body
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
+    document.body.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
   }, [theme])
 
