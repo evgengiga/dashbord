@@ -36,7 +36,6 @@ const ClientOrdersTable = ({ data, details, columns }) => {
             {columns.map((col, idx) => (
               <th key={idx}>{col}</th>
             ))}
-            <th style={{ width: '50px' }}></th>
           </tr>
         </thead>
         <tbody>
@@ -49,23 +48,31 @@ const ClientOrdersTable = ({ data, details, columns }) => {
               <React.Fragment key={rowIndex}>
                 <tr className={isTotal ? 'total-row' : ''}>
                   {columns.map((col, colIndex) => (
-                    <td key={colIndex}>{row[col]}</td>
+                    <td key={colIndex}>
+                      {colIndex === 0 ? (
+                        // Первая колонка: добавляем стрелочку перед названием клиента
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {!isTotal && hasOrders && (
+                            <button
+                              className="expand-btn"
+                              onClick={() => toggleExpand(client)}
+                              title={expanded[client] ? 'Скрыть заказы' : 'Показать заказы'}
+                            >
+                              {expanded[client] ? '▲' : '▼'}
+                            </button>
+                          )}
+                          <span>{row[col]}</span>
+                        </div>
+                      ) : (
+                        // Остальные колонки: просто значение
+                        row[col]
+                      )}
+                    </td>
                   ))}
-                  <td>
-                    {!isTotal && hasOrders && (
-                      <button
-                        className="expand-btn"
-                        onClick={() => toggleExpand(client)}
-                        title={expanded[client] ? 'Скрыть заказы' : 'Показать заказы'}
-                      >
-                        {expanded[client] ? '▲' : '▼'}
-                      </button>
-                    )}
-                  </td>
                 </tr>
                 {!isTotal && expanded[client] && hasOrders && (
                   <tr className="details-row">
-                    <td colSpan={columns.length + 1}>
+                    <td colSpan={columns.length}>
                       <div className="details-content">
                         <h4>Заказы от клиента: {client}</h4>
                         <ul className="orders-list">
