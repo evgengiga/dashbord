@@ -40,137 +40,151 @@ class PlanfixService:
         target_local = local_part(email)
 
         # XML запрос user.getList (Planfix ограничивает pageSize, ставим 100)
-        xml_request = f"""<?xml version="1.0" encoding="UTF-8"?>
-<request method="user.getList">
-  <account>{self.account}</account>
-  <pageCurrent>1</pageCurrent>
-  <pageSize>100</pageSize>
-</request>"""
+        # Будем искать по нескольким страницам если нужно
+        max_pages = 5  # Максимум 5 страниц (500 пользователей)
 
         basic = base64.b64encode(f"{self.xml_api_key}:{self.xml_token}".encode("utf-8")).decode("utf-8")
+        
+        def extract_user(user):
+            uid = user.find('id').text if user.find('id') is not None else None
+            surname = user.find('lastName').text if user.find('lastName') is not None else ""
+            name = user.find('name').text if user.find('name') is not None else ""
+            patronymic = user.find('midName').text if user.find('midName') is not None else ""
+            primary_email = user.find('email').text if user.find('email') is not None else ""
+            login = user.find('login').text if user.find('login') is not None else ""
+
+            # В БД нужен формат: Имя Фамилия (БЕЗ отчества!)
+            # Отчество игнорируется, так как в БД пользователи указаны только как Имя Фамилия
+            full_name_parts = [name, surname]  # Без patronymic!
+            full_name = " ".join([p for p in full_name_parts if p]) or login or primary_email or email
+
+            return uid, surname, name, patronymic, full_name, primary_email, login
+        
         try:
             async with httpx.AsyncClient() as client:
-                try:
-                    response = await client.post(
-                        self.xml_api_url,
-                        content=xml_request,
-                        headers={
-                            "Content-Type": "application/xml; charset=utf-8",
-                            "Accept": "application/xml",
-                            "Authorization": f"Basic {basic}",
-                        },
-                        timeout=15.0
-                    )
-                except Exception as e:
-                    print(f"❌ XML request exception: {e}")
-                    return None
-
-                print(f"🔷 XML API response status: {response.status_code}")
-                print(f"🔷 XML API response (first 500 chars): {response.text[:500]}")
-
-                if response.status_code != 200:
-                    print(f"❌ XML API returned status {response.status_code}")
-                    return None
-
-                try:
-                    root = ET.fromstring(response.text)
-                except Exception as parse_err:
-                    print(f"❌ XML parse error: {parse_err}")
-                    return None
-
-                if root.get('status') != 'ok':
-                    err_code = root.find('.//code').text if root.find('.//code') is not None else "unknown"
-                    err_msg = root.find('.//message').text if root.find('.//message') is not None else "Unknown error"
-                    print(f"❌ XML API error: code={err_code}, msg={err_msg}")
-                    return None
-
-                users_node = root.find('.//users')
-                if users_node is None:
-                    print("⚠️ No users element in XML response")
-                    return None
-
-                def extract_user(user):
-                    uid = user.find('id').text if user.find('id') is not None else None
-                    surname = user.find('lastName').text if user.find('lastName') is not None else ""
-                    name = user.find('name').text if user.find('name') is not None else ""
-                    patronymic = user.find('midName').text if user.find('midName') is not None else ""
-                    primary_email = user.find('email').text if user.find('email') is not None else ""
-                    login = user.find('login').text if user.find('login') is not None else ""
-
-                    # В БД нужен формат: Имя Фамилия (БЕЗ отчества!)
-                    # Отчество игнорируется, так как в БД пользователи указаны только как Имя Фамилия
-                    full_name_parts = [name, surname]  # Без patronymic!
-                    full_name = " ".join([p for p in full_name_parts if p]) or login or primary_email or email
-
-                    return uid, surname, name, patronymic, full_name, primary_email, login
-
-                # Безопасный поиск пользователя
-                all_users = users_node.findall('user')
-                print(f"📋 Total users in XML response: {len(all_users)}")
-                print(f"🔍 Searching for: email='{email}', local_part='{target_local}'")
-                
-                matched_user = None
-                match_type = None
-                
-                # Проходим по всем пользователям
-                for idx, user in enumerate(all_users):
-                    # Безопасно извлекаем email и login
-                    email_node = user.find('email')
-                    login_node = user.find('login')
+                # Ищем по нескольким страницам
+                for page in range(1, max_pages + 1):
+                    xml_request = f"""<?xml version="1.0" encoding="UTF-8"?>
+<request method="user.getList">
+  <account>{self.account}</account>
+  <pageCurrent>{page}</pageCurrent>
+  <pageSize>100</pageSize>
+</request>"""
                     
-                    user_email = email_node.text if (email_node is not None and email_node.text) else ""
-                    user_login = login_node.text if (login_node is not None and login_node.text) else ""
-                    
-                    # Пропускаем пользователей без email и login
-                    if not user_email and not user_login:
-                        print(f"   [User #{idx+1}] Skipping: no email, no login")
-                        continue
-                    
-                    # Приводим к нижнему регистру для сравнения
-                    user_email_lower = user_email.lower() if user_email else ""
-                    user_login_lower = user_login.lower() if user_login else ""
-                    user_local = local_part(user_email)
-                    
-                    # Логируем каждого пользователя для отладки
-                    print(f"   [User #{idx+1}] email='{user_email}', login='{user_login}', local='{user_local}'")
-                    
-                    # Проверяем совпадения (по приоритету)
-                    if user_email_lower and user_email_lower == email.lower():
-                        matched_user = user
-                        match_type = "exact email"
-                        print(f"      ✓ MATCH: exact email")
+                    try:
+                        response = await client.post(
+                            self.xml_api_url,
+                            content=xml_request,
+                            headers={
+                                "Content-Type": "application/xml; charset=utf-8",
+                                "Accept": "application/xml",
+                                "Authorization": f"Basic {basic}",
+                            },
+                            timeout=15.0
+                        )
+                    except Exception as e:
+                        print(f"❌ XML request exception (page {page}): {e}")
+                        if page == 1:
+                            return None
                         break
-                    elif user_login_lower and user_login_lower == target_local:
-                        matched_user = user
-                        match_type = "login"
-                        print(f"      ✓ MATCH: login")
-                        break
-                    elif user_local and user_local == target_local:
-                        matched_user = user
-                        match_type = "email local part"
-                        print(f"      ✓ MATCH: email local part")
-                        break
-                
-                if matched_user:
-                    uid, surname, name, patronymic, full_name, primary_email, login = extract_user(matched_user)
-                    print(f"\n✅ Found user via XML API user.getList!")
-                    print(f"   Match type: {match_type}")
-                    print(f"   ID: {uid}")
-                    print(f"   Email: {primary_email}")
-                    print(f"   Login: {login}")
-                    print(f"   Full name: '{full_name}'")
-                    print(f"   Parts: surname='{surname}', name='{name}', patronymic='{patronymic}'")
 
-                    return {
-                        "id": uid,
-                        "email": primary_email or email,
-                        "full_name": full_name,
-                        "last_name": surname,
-                        "first_name": name,
-                        "middle_name": patronymic,
-                    }
+                    print(f"🔷 XML API response status (page {page}): {response.status_code}")
+
+                    if response.status_code != 200:
+                        print(f"❌ XML API returned status {response.status_code} on page {page}")
+                        if page == 1:
+                            return None
+                        break
+
+                    try:
+                        root = ET.fromstring(response.text)
+                    except Exception as parse_err:
+                        print(f"❌ XML parse error (page {page}): {parse_err}")
+                        if page == 1:
+                            return None
+                        break
+
+                    if root.get('status') != 'ok':
+                        err_code = root.find('.//code').text if root.find('.//code') is not None else "unknown"
+                        err_msg = root.find('.//message').text if root.find('.//message') is not None else "Unknown error"
+                        print(f"❌ XML API error (page {page}): code={err_code}, msg={err_msg}")
+                        if page == 1:
+                            return None
+                        break
+
+                    users_node = root.find('.//users')
+                    if users_node is None:
+                        print(f"⚠️ No users element in XML response (page {page})")
+                        if page == 1:
+                            return None
+                        break
+
+                    # Безопасный поиск пользователя
+                    all_users = users_node.findall('user')
+                    print(f"📋 Page {page}: {len(all_users)} users")
+                    
+                    if len(all_users) == 0:
+                        print(f"⚠️ No users on page {page}, stopping search")
+                        break
+                    
+                    matched_user = None
+                    match_type = None
+                    
+                    # Проходим по всем пользователям на этой странице
+                    for idx, user in enumerate(all_users):
+                        # Безопасно извлекаем email и login
+                        email_node = user.find('email')
+                        login_node = user.find('login')
+                        
+                        user_email = email_node.text if (email_node is not None and email_node.text) else ""
+                        user_login = login_node.text if (login_node is not None and login_node.text) else ""
+                        
+                        # Пропускаем пользователей без email и login
+                        if not user_email and not user_login:
+                            continue
+                        
+                        # Приводим к нижнему регистру для сравнения
+                        user_email_lower = user_email.lower() if user_email else ""
+                        user_login_lower = user_login.lower() if user_login else ""
+                        user_local = local_part(user_email)
+                        
+                        # Проверяем совпадения (по приоритету)
+                        if user_email_lower and user_email_lower == email.lower():
+                            matched_user = user
+                            match_type = "exact email"
+                            print(f"      ✓ MATCH on page {page}: exact email")
+                            break
+                        elif user_login_lower and user_login_lower == target_local:
+                            matched_user = user
+                            match_type = "login"
+                            print(f"      ✓ MATCH on page {page}: login")
+                            break
+                        elif user_local and user_local == target_local:
+                            matched_user = user
+                            match_type = "email local part"
+                            print(f"      ✓ MATCH on page {page}: email local part")
+                            break
+                    
+                    if matched_user:
+                        uid, surname, name, patronymic, full_name, primary_email, login = extract_user(matched_user)
+                        print(f"\n✅ Found user via XML API user.getList (page {page})!")
+                        print(f"   Match type: {match_type}")
+                        print(f"   ID: {uid}")
+                        print(f"   Email: {primary_email}")
+                        print(f"   Login: {login}")
+                        print(f"   Full name: '{full_name}'")
+                        print(f"   Parts: surname='{surname}', name='{name}', patronymic='{patronymic}'")
+
+                        return {
+                            "id": uid,
+                            "email": primary_email or email,
+                            "full_name": full_name,
+                            "last_name": surname,
+                            "first_name": name,
+                            "middle_name": patronymic,
+                        }
                 
-                print(f"\n⚠️ User with email '{email}' (local: '{target_local}') NOT FOUND in {len(all_users)} users")
+                print(f"\n⚠️ User with email '{email}' (local: '{target_local}') NOT FOUND after searching {max_pages} pages")
                 return None
         except Exception as e:
             print(f"❌ XML API exception: {e}")
