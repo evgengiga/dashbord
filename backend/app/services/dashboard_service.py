@@ -78,14 +78,15 @@ class DashboardService:
             })
         
         # 6. Заказы от клиентов по финансовому году
-        client_orders = self._get_client_orders_data(user_full_name, fiscal_year)
-        if client_orders:
+        client_orders_data = self._get_client_orders_data(user_full_name, fiscal_year)
+        if client_orders_data and client_orders_data.get("summary"):
             dashboard_items.append({
                 "id": "client_orders",
                 "title": "Заказы от клиентов",
                 "description": "Количество заказов от клиентов за финансовый год",
-                "data": client_orders,
-                "columns": list(client_orders[0].keys()) if client_orders else []
+                "data": client_orders_data["summary"],
+                "columns": list(client_orders_data["summary"][0].keys()) if client_orders_data["summary"] else [],
+                "details": client_orders_data.get("details", [])  # Добавляем детализацию
             })
         
         return dashboard_items
@@ -877,9 +878,10 @@ class DashboardService:
             traceback.print_exc()
             return []
     
-    def _get_client_orders_data(self, user_full_name: str, fiscal_year: str = "current") -> List[Dict]:
+    def _get_client_orders_data(self, user_full_name: str, fiscal_year: str = "current") -> Dict:
         """
         Получает данные по заказам от клиентов для пользователя за финансовый год
+        Возвращает summary (таблица) и details (список заказов по клиентам)
         
         Args:
             user_full_name: ФИО пользователя
@@ -890,7 +892,8 @@ class DashboardService:
         # Определяем смещение для финансового года
         year_offset = 0 if fiscal_year == "current" else -1
         
-        query = f"""
+        # Запрос для summary (сводная таблица по клиентам)
+        summary_query = f"""
         WITH client_data AS (
             SELECT
                 kontr_name,
@@ -943,19 +946,53 @@ class DashboardService:
             CASE WHEN sort_order = 1 THEN "Клиент" END ASC
         """
         
+        # Запрос для details (детальный список заказов с task_id)
+        details_query = f"""
+        SELECT DISTINCT
+            kontr_name AS client,
+            nad_zad_name AS order_name,
+            task_id
+        FROM (
+            SELECT kontr_name, nad_zad_name, task_id, "user", date_create FROM proizv_gr_artema
+            WHERE "user" = :user_name
+              AND date_create IS NOT NULL
+            UNION ALL
+            SELECT kontr_name, nad_zad_name, task_id, "user", date_create FROM proizv_gr_zheni
+            WHERE "user" = :user_name
+              AND date_create IS NOT NULL
+        ) combined
+        WHERE date_create >= 
+            CASE 
+                WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+                ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int - 1 + {year_offset}, 3, 1)
+            END
+        AND date_create < 
+            CASE 
+                WHEN EXTRACT(MONTH FROM NOW()) >= 3 
+                THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
+                ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
+            END
+        ORDER BY kontr_name, nad_zad_name
+        """
+        
         try:
-            result = execute_query(query, {"user_name": user_full_name})
-            print(f"✅ Client orders query executed, rows returned: {len(result)}")
-            if result:
-                print(f"📊 Sample row: {result[0]}")
-                if len(result) > 1:
-                    print(f"📊 Total row: {result[-1]}")
-            return result
+            summary = execute_query(summary_query, {"user_name": user_full_name})
+            details = execute_query(details_query, {"user_name": user_full_name})
+            
+            print(f"✅ Client orders query executed")
+            print(f"   Summary rows: {len(summary)}")
+            print(f"   Details rows: {len(details)}")
+            
+            return {
+                "summary": summary,
+                "details": details
+            }
         except Exception as e:
             print(f"Error executing client orders query: {e}")
             import traceback
             traceback.print_exc()
-            return []
+            return {"summary": [], "details": []}
     
     def _get_preparation_time_data(self, user_full_name: str) -> List[Dict]:
         """

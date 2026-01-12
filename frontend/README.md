@@ -224,3 +224,5 @@ npm run build
 Убедитесь, что обновили `API_BASE_URL` на production URL backend.
 
 
+
+

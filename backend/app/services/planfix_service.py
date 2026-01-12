@@ -97,8 +97,9 @@ class PlanfixService:
                     primary_email = user.find('email').text if user.find('email') is not None else ""
                     login = user.find('login').text if user.find('login') is not None else ""
 
-                    # В БД нужен формат: Имя Фамилия Отчество (а не Фамилия Имя Отчество)
-                    full_name_parts = [name, surname, patronymic]
+                    # В БД нужен формат: Имя Фамилия (БЕЗ отчества!)
+                    # Отчество игнорируется, так как в БД пользователи указаны только как Имя Фамилия
+                    full_name_parts = [name, surname]  # Без patronymic!
                     full_name = " ".join([p for p in full_name_parts if p]) or login or primary_email or email
 
                     return uid, surname, name, patronymic, full_name, primary_email, login
@@ -266,11 +267,12 @@ class PlanfixService:
                             
                             print(f"🔍 Extracted: surname='{surname}', name='{name}', patronymic='{patronymic}'")
                         
-                            # Формируем ФИО как "Фамилия Имя Отчество"
-                            full_name_parts = [surname, name, patronymic]
+                            # Формируем ФИО как "Имя Фамилия" (БЕЗ отчества!)
+                            # Отчество игнорируется, так как в БД пользователи указаны только как Имя Фамилия
+                            full_name_parts = [name, surname]  # Без patronymic!
                             full_name = " ".join([p for p in full_name_parts if p])
                             
-                            print(f"🔧 Constructed from parts: '{full_name}'")
+                            print(f"🔧 Constructed from parts (without patronymic): '{full_name}'")
                         
                         # Если все еще пусто - берем часть email до @
                         if not full_name:

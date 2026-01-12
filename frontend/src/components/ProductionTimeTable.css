@@ -1,0 +1,25 @@
+.production-time-table {
+  width: 100%;
+}
+
+/* Отрицательное значение = уменьшение времени = хорошо = зелёный */
+.change-positive {
+  background-color: #d4edda !important; /* Светло-зелёный фон */
+  color: #155724 !important; /* Тёмно-зелёный текст */
+  font-weight: 600;
+}
+
+/* Положительное значение = увеличение времени = плохо = красный */
+.change-negative {
+  background-color: #f8d7da !important; /* Светло-красный фон */
+  color: #721c24 !important; /* Тёмно-красный текст */
+  font-weight: 600;
+}
+
+/* Добавляем небольшую анимацию при наведении */
+.change-positive:hover,
+.change-negative:hover {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+

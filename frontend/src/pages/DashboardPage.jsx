@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { dashboardAPI } from '../services/api'
 import DataTable from '../components/DataTable'
 import OverdueTasksTable from '../components/OverdueTasksTable'
+import ClientOrdersTable from '../components/ClientOrdersTable'
+import ProductionTimeTable from '../components/ProductionTimeTable'
 import './DashboardPage.css'
 
 function DashboardPage({ token, userInfo, onLogout }) {
@@ -131,6 +133,27 @@ function DashboardPage({ token, userInfo, onLogout }) {
                             <OverdueTasksTable 
                               data={item.data} 
                               details={item.details || []} 
+                            />
+                          );
+                        }
+                        
+                        // Специальный компонент для заказов от клиентов
+                        if (item.id === 'client_orders') {
+                          return (
+                            <ClientOrdersTable 
+                              data={item.data} 
+                              details={item.details || []} 
+                              columns={item.columns}
+                            />
+                          );
+                        }
+                        
+                        // Специальный компонент для среднего времени принятия производства
+                        if (item.id === 'production_acceptance_time') {
+                          return (
+                            <ProductionTimeTable 
+                              data={item.data} 
+                              columns={item.columns}
                             />
                           );
                         }
