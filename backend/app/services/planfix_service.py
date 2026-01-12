@@ -247,9 +247,27 @@ class PlanfixService:
                     
                     if users and len(users) > 0:
                         user = users[0]
+                        user_id = user.get("id")
                         
                         print(f"📋 User data from Planfix: {user}")  # Данные пользователя
                         print(f"🔑 Available keys in user object: {list(user.keys())}")
+                        
+                        # Если в ответе только ID, пробуем получить полные данные через user/get
+                        if len(user.keys()) == 1 and "id" in user:
+                            print(f"⚠️ Only ID returned, trying to get full user data via user/get...")
+                            try:
+                                get_response = await client.post(
+                                    f"{self.base_url}user/get",
+                                    headers=self.headers,
+                                    json={"id": user_id},
+                                    timeout=10.0
+                                )
+                                if get_response.status_code == 200:
+                                    get_data = get_response.json()
+                                    user = get_data.get("user") or get_data.get("contact") or user
+                                    print(f"✅ Got full user data: {list(user.keys())}")
+                            except Exception as e:
+                                print(f"⚠️ Failed to get full user data: {e}")
                         
                         # Проверяем, может быть fullName уже есть
                         full_name = (user.get("fullName") or 
@@ -291,12 +309,12 @@ class PlanfixService:
                         print(f"🎯 Final full name: '{full_name}'")
                         
                         return {
-                            "id": user.get("id"),
+                            "id": user_id,
                             "email": user.get("email") or email,
                             "full_name": full_name,
-                            "last_name": user.get("surname", ""),
-                            "first_name": user.get("name", ""),
-                            "middle_name": user.get("patronymic", ""),
+                            "last_name": user.get("surname") or user.get("lastName") or "",
+                            "first_name": user.get("name") or user.get("firstName") or "",
+                            "middle_name": user.get("patronymic") or user.get("middleName") or "",
                         }
                 else:
                     print(f"Planfix API error response: {response.text}")
