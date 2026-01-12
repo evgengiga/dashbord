@@ -910,11 +910,11 @@ class DashboardService:
                 COUNT(DISTINCT CASE WHEN nad_zad_name IS NOT NULL THEN nad_zad_name END) AS order_count,
                 SUM(COALESCE(sum_project, 0)) AS total_sum
             FROM (
-                SELECT kontr_name, nad_zad_name, sum_project, "user", date_create FROM proizv_gr_artema
+                SELECT kontr_name, nad_zad_name, sum_project, status, "user", date_create FROM proizv_gr_artema
                 WHERE "user" = :user_name
                   AND date_create IS NOT NULL
                 UNION ALL
-                SELECT kontr_name, nad_zad_name, sum_project, "user", date_create FROM proizv_gr_zheni
+                SELECT kontr_name, nad_zad_name, sum_project, status, "user", date_create FROM proizv_gr_zheni
                 WHERE "user" = :user_name
                   AND date_create IS NOT NULL
             ) combined
@@ -930,6 +930,7 @@ class DashboardService:
                     THEN MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + 1 + {year_offset}, 3, 1)
                     ELSE MAKE_DATE(EXTRACT(YEAR FROM NOW())::int + {year_offset}, 3, 1)
                 END
+            {status_condition}
             GROUP BY kontr_name
         ),
         with_total AS (

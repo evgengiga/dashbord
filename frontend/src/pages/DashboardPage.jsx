@@ -55,18 +55,6 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
             <h1 className="header-title">📊 Dashboard</h1>
           </div>
           <div className="header-user">
-            {/* Переключатель статуса заказов */}
-            <select 
-              value={orderStatus} 
-              onChange={(e) => setOrderStatus(e.target.value)}
-              className="status-filter"
-              title="Фильтр по статусу заказов"
-            >
-              <option value="active">Активные заказы</option>
-              <option value="completed">Завершенные заказы</option>
-              <option value="all">Все заказы</option>
-            </select>
-            
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
             <span className="user-name">
               <strong>{userInfo?.name || 'Пользователь'}</strong>
@@ -139,11 +127,28 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
                         // Специальный компонент для заказов от клиентов
                         if (item.id === 'client_orders') {
                           return (
-                            <ClientOrdersTable 
-                              data={item.data} 
-                              details={item.details || []} 
-                              columns={item.columns}
-                            />
+                            <>
+                              {/* Переключатель статуса заказов */}
+                              <div className="status-filter-container">
+                                <label htmlFor="order-status-filter">Фильтр по статусу:</label>
+                                <select 
+                                  id="order-status-filter"
+                                  value={orderStatus} 
+                                  onChange={(e) => setOrderStatus(e.target.value)}
+                                  className="status-filter"
+                                >
+                                  <option value="active">Активные заказы</option>
+                                  <option value="completed">Завершенные заказы</option>
+                                  <option value="all">Все заказы</option>
+                                </select>
+                              </div>
+                              
+                              <ClientOrdersTable 
+                                data={item.data} 
+                                details={item.details || []} 
+                                columns={item.columns}
+                              />
+                            </>
                           );
                         }
                         

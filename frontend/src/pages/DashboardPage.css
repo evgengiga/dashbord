@@ -51,6 +51,22 @@
   color: var(--text-tertiary);
 }
 
+.status-filter-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.status-filter-container label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .no-data p {
   font-size: 16px;
 }
