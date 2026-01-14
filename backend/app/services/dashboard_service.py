@@ -582,11 +582,20 @@ class DashboardService:
                   AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
             ) combined
             WHERE 
-              -- Финансовый год: всегда показываем период с 1 марта текущего года по 28 февраля следующего года
-              -- Например, если сейчас январь 2025, показываем март 2025 - февраль 2026
+              -- Финансовый год: с 1 марта по 28 февраля
+              -- Если текущий месяц >= марта, показываем финансовый год с марта текущего года по февраль следующего
+              -- Если текущий месяц < марта, показываем финансовый год с марта прошлого года по февраль текущего
+              -- Это гарантирует, что текущий месяц всегда включен в отображаемый период
+              (
+                (EXTRACT(MONTH FROM NOW()) >= 3 
+                 AND cp_sogl >= (DATE_TRUNC('year', NOW()) + INTERVAL '2 months')::date
+                 AND cp_sogl < (DATE_TRUNC('year', NOW()) + INTERVAL '14 months')::date)
+                OR
+                (EXTRACT(MONTH FROM NOW()) < 3
+                 AND cp_sogl >= (DATE_TRUNC('year', NOW()) - INTERVAL '10 months')::date
+                 AND cp_sogl < (DATE_TRUNC('year', NOW()) + INTERVAL '2 months')::date)
+              )
               -- Исключаем будущие месяцы (показываем только до текущего месяца)
-              cp_sogl >= (DATE_TRUNC('year', NOW()) + INTERVAL '2 months')::date
-              AND cp_sogl < (DATE_TRUNC('year', NOW()) + INTERVAL '14 months')::date
               AND DATE_TRUNC('month', cp_sogl)::date <= DATE_TRUNC('month', NOW())::date
             GROUP BY DATE_TRUNC('month', cp_sogl)::date
             ORDER BY DATE_TRUNC('month', cp_sogl)::date
