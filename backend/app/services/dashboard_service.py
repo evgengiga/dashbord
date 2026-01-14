@@ -581,8 +581,13 @@ class DashboardService:
                   AND (cp_sogl <> '1970-01-01' OR cp_sogl IS NULL)
                   AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
             ) combined
-            WHERE cp_sogl >= DATE_TRUNC('year', NOW())
-              AND cp_sogl < DATE_TRUNC('year', NOW() + INTERVAL '1 year')
+            WHERE 
+              -- Финансовый год: всегда показываем период с 1 марта текущего года по 28 февраля следующего года
+              -- Например, если сейчас январь 2025, показываем март 2025 - февраль 2026
+              -- Исключаем будущие месяцы (показываем только до текущего месяца)
+              cp_sogl >= (DATE_TRUNC('year', NOW()) + INTERVAL '2 months')::date
+              AND cp_sogl < (DATE_TRUNC('year', NOW()) + INTERVAL '14 months')::date
+              AND DATE_TRUNC('month', cp_sogl)::date <= DATE_TRUNC('month', NOW())::date
             GROUP BY DATE_TRUNC('month', cp_sogl)::date
             ORDER BY DATE_TRUNC('month', cp_sogl)::date
         ),
