@@ -36,8 +36,8 @@ function WaitingSalesTable({ data, details }) {
                   {task.status}
                 </span>
               )}
-              <span className="waiting-days">
-                Ожидание: <strong>{task.waiting_days || 0}</strong> {task.waiting_days === 1 ? 'день' : task.waiting_days < 5 ? 'дня' : 'дней'}
+              <span className="overdue-days">
+                Просрочка: <strong>{task.waiting_days || 0}</strong> {task.waiting_days === 1 ? 'день' : task.waiting_days < 5 ? 'дня' : 'дней'}
               </span>
             </li>
           ))}

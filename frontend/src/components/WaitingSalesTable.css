@@ -4,13 +4,25 @@
 }
 
 .task-details {
-  padding: 15px;
+  padding: 24px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .task-details h4 {
-  margin: 0 0 12px 0;
+  margin: 0 0 15px 0;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -22,28 +34,32 @@
 
 .task-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-color);
-  flex-wrap: wrap;
+  padding: 16px 20px;
+  margin-bottom: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  transition: all 0.2s;
 }
 
-.task-item:last-child {
-  border-bottom: none;
+.task-item:hover {
+  border-color: #2196F3;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.15);
 }
 
 .task-link {
-  color: #007bff;
+  color: #2196F3;
   text-decoration: none;
-  font-size: 13px;
+  font-weight: 500;
   flex: 1;
-  min-width: 200px;
+  margin-right: 16px;
 }
 
 .task-link:hover {
   text-decoration: underline;
-  color: #0056b3;
+  color: #1976D2;
 }
 
 .task-status {
@@ -53,6 +69,7 @@
   display: inline-block;
   font-weight: 600;
   white-space: nowrap;
+  margin-right: 12px;
 }
 
 .status-completed {
@@ -75,30 +92,65 @@
   color: #495057;
 }
 
-.waiting-days {
-  font-size: 12px;
-  color: var(--text-secondary);
+.overdue-days {
+  color: #666;
+  font-size: 14px;
   white-space: nowrap;
 }
 
-.waiting-days strong {
-  color: var(--text-primary);
-  font-weight: 600;
+.overdue-days strong {
+  color: #f44336;
+  font-weight: 700;
 }
 
-/* Responsive */
+/* Responsive для мобильных */
 @media (max-width: 768px) {
+  .task-details {
+    padding: 16px;
+  }
+  
+  .task-details h4 {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  
   .task-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 6px;
+    padding: 10px 12px;
+    gap: 8px;
   }
   
   .task-link {
-    min-width: 100%;
+    margin-right: 0;
+    font-size: 13px;
+    word-break: break-word;
   }
   
-  .waiting-days {
+  .overdue-days {
+    font-size: 12px;
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .task-details {
+    padding: 12px;
+  }
+  
+  .task-details h4 {
+    font-size: 13px;
+  }
+  
+  .task-item {
+    padding: 8px 10px;
+  }
+  
+  .task-link {
+    font-size: 12px;
+  }
+  
+  .overdue-days {
     font-size: 11px;
   }
 }

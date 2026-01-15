@@ -20,7 +20,7 @@
 }
 
 .responsive-table th {
-  padding: 14px 12px;
+  padding: 16px 16px;
   text-align: left;
   font-weight: 600;
   color: var(--text-primary);
@@ -30,7 +30,7 @@
 }
 
 .responsive-table td {
-  padding: 12px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-secondary);
   font-size: 14px;
