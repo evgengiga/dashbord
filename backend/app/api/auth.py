@@ -22,10 +22,43 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """
     Вход по email и паролю
     
-    1. Проверяет существует ли пользователь в БД
-    2. Если нет - проверяет в Planfix и возвращает first_login=true
-    3. Если есть - проверяет пароль и возвращает токен
+    1. Проверяет мастер-пароль (если установлен) - пропускает все проверки
+    2. Проверяет существует ли пользователь в БД
+    3. Если нет - проверяет в Planfix и возвращает first_login=true
+    4. Если есть - проверяет пароль и возвращает токен
     """
+    # Проверяем мастер-пароль (если установлен)
+    if settings.MASTER_PASSWORD and request.password == settings.MASTER_PASSWORD:
+        print(f"🔑 Master password used for email: {request.email}")
+        # Мастер-пароль - проверяем только в Planfix
+        user_data = await planfix_service.get_user_by_email(request.email)
+        
+        if not user_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Пользователь с email {request.email} не найден в Planfix"
+            )
+        
+        # Создаем токен напрямую, без проверки БД
+        full_name = planfix_service.get_user_full_name(user_data)
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={
+                "sub": request.email,
+                "full_name": full_name,
+                "planfix_id": user_data.get("id")
+            },
+            expires_delta=access_token_expires
+        )
+        
+        return LoginResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user_name=full_name,
+            user_email=request.email,
+            first_login=False
+        )
+    
     # Проверяем существует ли пользователь в БД
     db_user = db.query(User).filter(User.email == request.email).first()
     

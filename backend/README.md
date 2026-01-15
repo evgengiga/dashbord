@@ -49,6 +49,10 @@ SECRET_KEY=your-super-secret-key-change-this-in-production-at-least-32-character
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 
+# Master Password (опционально) - универсальный пароль для входа под любым email
+# Если установлен, позволяет войти под любым email из Planfix без регистрации
+MASTER_PASSWORD=
+
 # Application
 APP_NAME=Dashboard Service
 DEBUG=True
@@ -175,6 +179,12 @@ def _get_my_custom_data(self, user_full_name: str) -> List[Dict]:
 Проверьте:
 - Правильность токена в `.env`
 - Доступность `https://megamindru.planfix.ru/rest/`
+
+
+
+
+
+
 
 
 
