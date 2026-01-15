@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Большая черная звезда в верхней части -->
+  <path d="M50,10 L55,35 L80,35 L60,50 L70,75 L50,60 L30,75 L40,50 L20,35 L45,35 Z" 
+        fill="black"/>
+  
+  <!-- Белый график (столбцы) в нижней части, перекрывающий звезду -->
+  <g fill="white">
+    <!-- Столбцы разной высоты -->
+    <rect x="15" y="65" width="10" height="20" rx="1"/>
+    <rect x="28" y="60" width="10" height="25" rx="1"/>
+    <rect x="41" y="45" width="10" height="40" rx="1"/>
+    <rect x="54" y="55" width="10" height="30" rx="1"/>
+    <rect x="67" y="60" width="10" height="25" rx="1"/>
+    
+    <!-- Линия тренда, соединяющая вершины столбцов -->
+    <polyline points="20,65 34,60 46,45 59,55 72,60" 
+              stroke="white" 
+              stroke-width="2.5" 
+              fill="none" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"/>
+  </g>
+</svg>

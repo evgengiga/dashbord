@@ -60,3 +60,9 @@ SELECT email, full_name, created_at FROM users;
 - Для сброса пароля нужно либо удалить пользователя, либо сгенерировать новый хеш
 - В production рекомендуется добавить endpoint для сброса пароля через email
 
+
+
+
+
+
+

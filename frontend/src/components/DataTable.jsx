@@ -12,10 +12,22 @@ function DataTable({ data, columns }) {
   // Если columns не указаны, берем ключи из первой строки
   const tableColumns = columns || Object.keys(data[0])
 
+  // Определяем индекс столбца "Изменение"
+  const changeColumnIndex = tableColumns.findIndex(col => col === 'Изменение' || col === 'ИЗМЕНЕНИЕ')
+
   // Функция для форматирования значений
-  const formatValue = (value) => {
-    if (value === null || value === undefined) {
+  const formatValue = (value, colIndex) => {
+    if (value === null || value === undefined || value === '') {
       return '-'
+    }
+    
+    // Если это столбец "Изменение", добавляем знак + для положительных значений
+    if (colIndex === changeColumnIndex) {
+      const numValue = parseFloat(value)
+      if (!isNaN(numValue)) {
+        const prefix = numValue > 0 ? '+' : ''
+        return `${prefix}${value}`
+      }
     }
     
     // Если это число с плавающей точкой, округляем до 2 знаков
@@ -29,6 +41,22 @@ function DataTable({ data, columns }) {
     }
     
     return value
+  }
+
+  // Функция для определения класса CSS ячейки
+  const getCellClassName = (colIndex, value) => {
+    // Если это столбец "Изменение" и значение существует
+    if (colIndex === changeColumnIndex && value !== null && value !== undefined && value !== '') {
+      const numValue = parseFloat(value)
+      if (!isNaN(numValue)) {
+        if (numValue < 0) {
+          return 'change-positive' // Отрицательное изменение = зелёный (хорошо)
+        } else if (numValue > 0) {
+          return 'change-negative' // Положительное изменение = красный (плохо)
+        }
+      }
+    }
+    return ''
   }
 
   // Функция для определения цвета ячейки (если это процент)
@@ -62,9 +90,10 @@ function DataTable({ data, columns }) {
               {tableColumns.map((column, colIndex) => (
                 <td 
                   key={colIndex}
+                  className={getCellClassName(colIndex, row[column])}
                   style={getCellStyle(row[column])}
                 >
-                  {formatValue(row[column])}
+                  {formatValue(row[column], colIndex)}
                 </td>
               ))}
             </tr>
@@ -76,6 +105,7 @@ function DataTable({ data, columns }) {
 }
 
 export default DataTable
+
 
 
 

@@ -11,3 +11,9 @@ CREATE TABLE IF NOT EXISTS users (
 -- Индекс для быстрого поиска по email
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
+image.png
+
+
+
+
+

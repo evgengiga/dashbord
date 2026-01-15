@@ -340,3 +340,9 @@ CORS_ORIGINS=https://dashboard-frontend-xxxx.onrender.com,https://your-custom-do
 
 **Последнее обновление:** 2025-01-XX
 
+
+
+
+
+
+

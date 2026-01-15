@@ -69,3 +69,9 @@ CORS_ORIGINS=https://ваш-frontend-url.onrender.com
 
 **Полная инструкция:** `DEPLOY_FULL_GUIDE.md`
 
+
+
+
+
+
+

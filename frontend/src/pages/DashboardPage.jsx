@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { dashboardAPI } from '../services/api'
 import ResponsiveTable from '../components/ResponsiveTable'
 import OverdueTasksTable from '../components/OverdueTasksTable'
+import WaitingSalesTable from '../components/WaitingSalesTable'
 import ClientOrdersTable from '../components/ClientOrdersTable'
 import ProductionTimeTable from '../components/ProductionTimeTable'
 import ThemeToggle from '../components/ThemeToggle'
@@ -131,8 +132,8 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
                       
                       {/* Проверяем есть ли данные */}
                       {(() => {
-                        // Для просроченных задач data может быть объектом {summary, details}
-                        const hasData = item.id === 'overdue_tasks' 
+                        // Для просроченных задач и ожидающих продаж data может быть объектом {summary, details}
+                        const hasData = (item.id === 'overdue_tasks' || item.id === 'waiting_sales')
                           ? (item.data && item.data.length > 0)
                           : (item.data && item.data.length > 0);
                         
@@ -148,6 +149,16 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
                         if (item.id === 'overdue_tasks') {
                           return (
                             <OverdueTasksTable 
+                              data={item.data} 
+                              details={item.details || []} 
+                            />
+                          );
+                        }
+                        
+                        // Специальный компонент для задач, ожидающих ответа от продаж
+                        if (item.id === 'waiting_sales') {
+                          return (
+                            <WaitingSalesTable 
                               data={item.data} 
                               details={item.details || []} 
                             />

@@ -66,3 +66,9 @@ echo "1. Убедитесь, что файл .env заполнен правил�
 echo "2. Создайте systemd сервис (см. DEPLOY_OWN_SERVER.md)"
 echo "3. Запустите сервис: sudo systemctl start dashboard-backend"
 
+
+
+
+
+
+

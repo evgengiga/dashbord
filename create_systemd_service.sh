@@ -83,3 +83,9 @@ echo "  sudo systemctl restart dashboard-backend  # Перезапустить"
 echo "  sudo systemctl status dashboard-backend   # Статус"
 echo "  sudo journalctl -u dashboard-backend -f   # Логи"
 
+
+
+
+
+
+

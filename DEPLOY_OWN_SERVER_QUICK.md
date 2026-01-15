@@ -100,3 +100,9 @@ sudo tail -f /var/log/nginx/dashboard-error.log
 
 **Полная инструкция:** `DEPLOY_OWN_SERVER.md`
 
+
+
+
+
+
+

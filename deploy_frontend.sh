@@ -52,3 +52,9 @@ echo "   sudo cp -r dist/* /var/www/dashboard/"
 echo "   sudo chown -R www-data:www-data /var/www/dashboard"
 echo "2. Настройте Nginx (см. DEPLOY_OWN_SERVER.md)"
 
+
+
+
+
+
+

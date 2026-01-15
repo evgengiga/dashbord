@@ -34,7 +34,19 @@ class DashboardService:
                 "details": overdue_tasks_data.get("details", [])  # Добавляем детализацию
             })
         
-        # 2. Конверсии КП в образцы
+        # 2. Ждем ответа от продаж (задачи со статусом "Нужно прикрепить документы")
+        waiting_sales_data = self._get_waiting_sales_data(user_full_name)
+        if waiting_sales_data and waiting_sales_data.get("summary"):
+            dashboard_items.append({
+                "id": "waiting_sales",
+                "title": "⏳ Ждем ответа от продаж",
+                "description": "Задачи, требующие документов от продаж",
+                "data": waiting_sales_data["summary"],
+                "columns": list(waiting_sales_data["summary"][0].keys()) if waiting_sales_data["summary"] else [],
+                "details": waiting_sales_data.get("details", [])  # Добавляем детализацию
+            })
+        
+        # 3. Конверсии КП в образцы
         conversions = self._get_conversions_data(user_full_name, fiscal_year)
         if conversions:
             dashboard_items.append({
@@ -45,7 +57,7 @@ class DashboardService:
                 "columns": list(conversions[0].keys()) if conversions else []
             })
         
-        # 3. Конверсии КП в производство
+        # 4. Конверсии КП в производство
         production_conversions = self._get_production_conversions_data(user_full_name, fiscal_year)
         if production_conversions:
             dashboard_items.append({
@@ -67,7 +79,7 @@ class DashboardService:
                 "columns": list(approval_time[0].keys()) if approval_time else []
             })
         
-        # 5. Среднее время принятия производства по месяцам
+        # 6. Среднее время принятия производства по месяцам
         production_acceptance_time = self._get_production_acceptance_time_data(user_full_name, fiscal_year)
         if production_acceptance_time:
             dashboard_items.append({
@@ -78,7 +90,7 @@ class DashboardService:
                 "columns": list(production_acceptance_time[0].keys()) if production_acceptance_time else []
             })
         
-        # 6. Заказы от клиентов по финансовому году
+        # 7. Заказы от клиентов по финансовому году
         client_orders_data = self._get_client_orders_data(user_full_name, fiscal_year, order_status)
         if client_orders_data and client_orders_data.get("summary"):
             dashboard_items.append({
@@ -726,20 +738,21 @@ class DashboardService:
         FROM proizv_overdue pr
         """
         
-        # Детализация задач с task_id и task_name
+        # Детализация задач с task_id, task_name, prosr_day и status
         details_query = """
         SELECT
             'Просчеты' AS category,
             task_id,
             task_name,
-            prosr_day
+            prosr_day,
+            COALESCE(status, 'Без статуса') AS status
         FROM (
-            SELECT task_id, task_name, prosr_day FROM proscheti_gr_artema
+            SELECT task_id, task_name, prosr_day, status FROM proscheti_gr_artema
             WHERE "user" = :user_name
               AND prosrok_now = 'Да'
               AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
             UNION ALL
-            SELECT task_id, task_name, prosr_day FROM proscheti_gr_zheni
+            SELECT task_id, task_name, prosr_day, status FROM proscheti_gr_zheni
             WHERE "user" = :user_name
               AND prosrok_now = 'Да'
               AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
@@ -751,15 +764,16 @@ class DashboardService:
             'Образцы' AS category,
             task_id,
             task_name,
-            prosr_day
+            prosr_day,
+            COALESCE(status, 'Без статуса') AS status
         FROM (
-            SELECT task_id, task_name, prosr_day FROM obrazci_gr_artema
+            SELECT task_id, task_name, prosr_day, status FROM obrazci_gr_artema
             WHERE "user" = :user_name
               AND prosrok_now = 'Да'
               AND (status <> 'Завершенная' OR status IS NULL)
               AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
             UNION ALL
-            SELECT task_id, task_name, prosr_day FROM obrazci_gr_zheni
+            SELECT task_id, task_name, prosr_day, status FROM obrazci_gr_zheni
             WHERE "user" = :user_name
               AND prosrok_now = 'Да'
               AND (status <> 'Завершенная' OR status IS NULL)
@@ -772,14 +786,15 @@ class DashboardService:
             'Производства' AS category,
             task_id,
             task_name,
-            prosr_day
+            prosr_day,
+            COALESCE(status, 'Без статуса') AS status
         FROM (
-            SELECT task_id, task_name, prosr_day FROM proizv_gr_artema
+            SELECT task_id, task_name, prosr_day, status FROM proizv_gr_artema
             WHERE "user" = :user_name
               AND prosrok_now = 'Да'
               AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
             UNION ALL
-            SELECT task_id, task_name, prosr_day FROM proizv_gr_zheni
+            SELECT task_id, task_name, prosr_day, status FROM proizv_gr_zheni
             WHERE "user" = :user_name
               AND prosrok_now = 'Да'
               AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
@@ -1022,6 +1037,175 @@ class DashboardService:
             }
         except Exception as e:
             print(f"Error executing client orders query: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"summary": [], "details": []}
+    
+    def _get_waiting_sales_data(self, user_full_name: str) -> Dict:
+        """
+        Получает данные по задачам со статусом "Нужно прикрепить документы"
+        Структура аналогична просроченным задачам: summary (сводка) + details (детализация)
+        
+        Args:
+            user_full_name: ФИО пользователя
+            
+        Returns:
+            Словарь с summary и details
+        """
+        print(f"🔍 Executing waiting sales query for user: '{user_full_name}'")
+        
+        # Сводная таблица по категориям
+        summary_query = """
+        WITH proscheti_waiting AS (
+            SELECT
+                COUNT(*) AS count,
+                AVG(EXTRACT(EPOCH FROM (NOW() - date_create)) / 86400) AS avg_days
+            FROM (
+                SELECT date_create FROM proscheti_gr_artema
+                WHERE "user" = :user_name
+                  AND status = 'Нужно прикрепить документы'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT date_create FROM proscheti_gr_zheni
+                WHERE "user" = :user_name
+                  AND status = 'Нужно прикрепить документы'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) combined
+            WHERE date_create IS NOT NULL
+        ),
+        obrazci_waiting AS (
+            SELECT
+                COUNT(*) AS count,
+                AVG(EXTRACT(EPOCH FROM (NOW() - date_create)) / 86400) AS avg_days
+            FROM (
+                SELECT date_create FROM obrazci_gr_artema
+                WHERE "user" = :user_name
+                  AND status = 'Нужно прикрепить документы'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT date_create FROM obrazci_gr_zheni
+                WHERE "user" = :user_name
+                  AND status = 'Нужно прикрепить документы'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) combined
+            WHERE date_create IS NOT NULL
+        ),
+        proizv_waiting AS (
+            SELECT
+                COUNT(*) AS count,
+                AVG(EXTRACT(EPOCH FROM (NOW() - date_create)) / 86400) AS avg_days
+            FROM (
+                SELECT date_create FROM proizv_gr_artema
+                WHERE "user" = :user_name
+                  AND status = 'Нужно прикрепить документы'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+                UNION ALL
+                SELECT date_create FROM proizv_gr_zheni
+                WHERE "user" = :user_name
+                  AND status = 'Нужно прикрепить документы'
+                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            ) combined
+            WHERE date_create IS NOT NULL
+        )
+        SELECT
+            'Просчеты' AS "Категория",
+            COALESCE(p.count, 0) AS "Кол-во",
+            ROUND(COALESCE(p.avg_days, 0)::numeric, 1) AS "Ср. дней"
+        FROM proscheti_waiting p
+        UNION ALL
+        SELECT
+            'Образцы' AS "Категория",
+            COALESCE(o.count, 0) AS "Кол-во",
+            ROUND(COALESCE(o.avg_days, 0)::numeric, 1) AS "Ср. дней"
+        FROM obrazci_waiting o
+        UNION ALL
+        SELECT
+            'Производства' AS "Категория",
+            COALESCE(pr.count, 0) AS "Кол-во",
+            ROUND(COALESCE(pr.avg_days, 0)::numeric, 1) AS "Ср. дней"
+        FROM proizv_waiting pr
+        """
+        
+        # Детализация задач с task_id, task_name, status и количеством дней ожидания
+        details_query = """
+        SELECT
+            'Просчеты' AS category,
+            task_id,
+            task_name,
+            ROUND(EXTRACT(EPOCH FROM (NOW() - date_create)) / 86400)::int AS waiting_days,
+            COALESCE(status, 'Нужно прикрепить документы') AS status
+        FROM (
+            SELECT task_id, task_name, date_create, status FROM proscheti_gr_artema
+            WHERE "user" = :user_name
+              AND status = 'Нужно прикрепить документы'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            UNION ALL
+            SELECT task_id, task_name, date_create, status FROM proscheti_gr_zheni
+            WHERE "user" = :user_name
+              AND status = 'Нужно прикрепить документы'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+        ) proscheti
+        WHERE date_create IS NOT NULL
+        
+        UNION ALL
+        
+        SELECT
+            'Образцы' AS category,
+            task_id,
+            task_name,
+            ROUND(EXTRACT(EPOCH FROM (NOW() - date_create)) / 86400)::int AS waiting_days,
+            COALESCE(status, 'Нужно прикрепить документы') AS status
+        FROM (
+            SELECT task_id, task_name, date_create, status FROM obrazci_gr_artema
+            WHERE "user" = :user_name
+              AND status = 'Нужно прикрепить документы'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            UNION ALL
+            SELECT task_id, task_name, date_create, status FROM obrazci_gr_zheni
+            WHERE "user" = :user_name
+              AND status = 'Нужно прикрепить документы'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+        ) obrazci
+        WHERE date_create IS NOT NULL
+        
+        UNION ALL
+        
+        SELECT
+            'Производства' AS category,
+            task_id,
+            task_name,
+            ROUND(EXTRACT(EPOCH FROM (NOW() - date_create)) / 86400)::int AS waiting_days,
+            COALESCE(status, 'Нужно прикрепить документы') AS status
+        FROM (
+            SELECT task_id, task_name, date_create, status FROM proizv_gr_artema
+            WHERE "user" = :user_name
+              AND status = 'Нужно прикрепить документы'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+            UNION ALL
+            SELECT task_id, task_name, date_create, status FROM proizv_gr_zheni
+            WHERE "user" = :user_name
+              AND status = 'Нужно прикрепить документы'
+              AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
+        ) proizv
+        WHERE date_create IS NOT NULL
+        
+        ORDER BY category, waiting_days DESC
+        """
+        
+        try:
+            summary = execute_query(summary_query, {"user_name": user_full_name})
+            details = execute_query(details_query, {"user_name": user_full_name})
+            
+            print(f"✅ Waiting sales query executed")
+            print(f"   Summary rows: {len(summary)}")
+            print(f"   Details rows: {len(details)}")
+            
+            return {
+                "summary": summary,
+                "details": details
+            }
+        except Exception as e:
+            print(f"Error executing waiting sales query: {e}")
             import traceback
             traceback.print_exc()
             return {"summary": [], "details": []}

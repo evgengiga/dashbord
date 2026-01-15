@@ -107,6 +107,36 @@
   font-weight: 700;
 }
 
+.task-status {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  display: inline-block;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-right: 12px;
+}
+
+.status-completed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-waiting {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-active {
+  background-color: #e7f3ff;
+  color: #004085;
+}
+
+.status-default {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
 /* Responsive для мобильных */
 @media (max-width: 768px) {
   .expand-icon {

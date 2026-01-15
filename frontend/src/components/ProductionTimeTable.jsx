@@ -22,9 +22,9 @@ const ProductionTimeTable = ({ data, columns }) => {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
         if (numValue < 0) {
-          return 'change-negative'; // Отрицательное изменение = красный
+          return 'change-positive'; // Отрицательное изменение = зелёный (хорошо)
         } else if (numValue > 0) {
-          return 'change-positive'; // Положительное изменение = зелёный
+          return 'change-negative'; // Положительное изменение = красный (плохо)
         }
       }
     }

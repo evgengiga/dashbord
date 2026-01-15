@@ -141,6 +141,28 @@
   }
 }
 
+/* Стили для колонки "Изменение" */
+/* Положительное значение = красный (плохо - увеличение времени) */
+.data-table .change-negative {
+  background-color: #f8d7da !important; /* Светло-красный фон */
+  color: #721c24 !important; /* Тёмно-красный текст */
+  font-weight: 600;
+}
+
+/* Отрицательное значение = зелёный (хорошо - уменьшение времени) */
+.data-table .change-positive {
+  background-color: #d4edda !important; /* Светло-зелёный фон */
+  color: #155724 !important; /* Тёмно-зелёный текст */
+  font-weight: 600;
+}
+
+/* Анимация при наведении */
+.data-table .change-positive:hover,
+.data-table .change-negative:hover {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
 
 
 

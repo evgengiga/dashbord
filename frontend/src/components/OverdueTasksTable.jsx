@@ -72,21 +72,36 @@ function OverdueTasksTable({ data, details }) {
                       <div className="task-details">
                         <h4>Просроченные задачи ({category}):</h4>
                         <ul className="task-list">
-                          {groupedDetails[category].map((task, idx) => (
-                            <li key={idx} className="task-item">
-                              <a 
-                                href={`https://megamindru.planfix.ru/task/${task.task_id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="task-link"
-                              >
-                                {task.task_name || `Задача #${task.task_id}`}
-                              </a>
-                              <span className="overdue-days">
-                                Просрочка: <strong>{task.prosr_day}</strong> {task.prosr_day === 1 ? 'день' : task.prosr_day < 5 ? 'дня' : 'дней'}
-                              </span>
-                            </li>
-                          ))}
+                          {groupedDetails[category].map((task, idx) => {
+                            // Функция для определения класса статуса
+                            const getStatusClass = (status) => {
+                              if (!status || status === 'Без статуса') return 'status-default'
+                              if (status === 'Завершенная' || status === 'Доставлено клиенту') return 'status-completed'
+                              if (status === 'Нужно прикрепить документы') return 'status-waiting'
+                              return 'status-active'
+                            }
+                            
+                            return (
+                              <li key={idx} className="task-item">
+                                <a 
+                                  href={`https://megamindru.planfix.ru/task/${task.task_id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="task-link"
+                                >
+                                  {task.task_name || `Задача #${task.task_id}`}
+                                </a>
+                                {task.status && (
+                                  <span className={`task-status ${getStatusClass(task.status)}`}>
+                                    {task.status}
+                                  </span>
+                                )}
+                                <span className="overdue-days">
+                                  Просрочка: <strong>{task.prosr_day}</strong> {task.prosr_day === 1 ? 'день' : task.prosr_day < 5 ? 'дня' : 'дней'}
+                                </span>
+                              </li>
+                            )
+                          })}
                         </ul>
                       </div>
                     </td>
@@ -102,6 +117,12 @@ function OverdueTasksTable({ data, details }) {
 }
 
 export default OverdueTasksTable
+
+
+
+
+
+
 
 
 
