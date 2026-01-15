@@ -3,52 +3,6 @@
   margin-top: 16px;
 }
 
-.waiting-sales-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.waiting-sales-table thead {
-  background: var(--bg-tertiary);
-  border-bottom: 2px solid var(--border-color);
-}
-
-.waiting-sales-table th {
-  padding: 12px;
-  text-align: left;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
-.waiting-sales-table td {
-  padding: 12px;
-  border-bottom: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-.waiting-sales-table .clickable-row {
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.waiting-sales-table .clickable-row:hover {
-  background: var(--hover-bg);
-}
-
-.expand-icon {
-  display: inline-block;
-  width: 16px;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 10px;
-  margin-right: 4px;
-}
-
-.details-row {
-  background-color: var(--bg-tertiary);
-}
-
 .task-details {
   padding: 15px;
 }

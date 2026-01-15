@@ -132,9 +132,12 @@ function DashboardPage({ token, userInfo, onLogout, theme, onToggleTheme }) {
                       
                       {/* Проверяем есть ли данные */}
                       {(() => {
-                        // Для просроченных задач и ожидающих продаж data может быть объектом {summary, details}
-                        const hasData = (item.id === 'overdue_tasks' || item.id === 'waiting_sales')
+                        // Для просроченных задач data может быть объектом {summary, details}
+                        // Для ожидающих продаж проверяем только details
+                        const hasData = item.id === 'overdue_tasks'
                           ? (item.data && item.data.length > 0)
+                          : item.id === 'waiting_sales'
+                          ? (item.details && item.details.length > 0)
                           : (item.data && item.data.length > 0);
                         
                         if (!hasData) {

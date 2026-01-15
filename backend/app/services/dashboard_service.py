@@ -36,14 +36,14 @@ class DashboardService:
         
         # 2. Ждем ответа от продаж (задачи со статусом "Нужно прикрепить документы")
         waiting_sales_data = self._get_waiting_sales_data(user_full_name)
-        if waiting_sales_data and waiting_sales_data.get("summary"):
+        if waiting_sales_data and waiting_sales_data.get("details") and len(waiting_sales_data.get("details", [])) > 0:
             dashboard_items.append({
                 "id": "waiting_sales",
                 "title": "⏳ Ждем ответа от продаж",
                 "description": "Задачи, требующие документов от продаж",
-                "data": waiting_sales_data["summary"],
-                "columns": list(waiting_sales_data["summary"][0].keys()) if waiting_sales_data["summary"] else [],
-                "details": waiting_sales_data.get("details", [])  # Добавляем детализацию
+                "data": [],  # Пустой массив, так как не нужна сводная таблица
+                "columns": [],
+                "details": waiting_sales_data.get("details", [])  # Только детализация
             })
         
         # 3. Конверсии КП в образцы
@@ -1044,87 +1044,15 @@ class DashboardService:
     def _get_waiting_sales_data(self, user_full_name: str) -> Dict:
         """
         Получает данные по задачам со статусом "Нужно прикрепить документы"
-        Структура аналогична просроченным задачам: summary (сводка) + details (детализация)
+        Возвращает только детализацию (без сводной таблицы)
         
         Args:
             user_full_name: ФИО пользователя
             
         Returns:
-            Словарь с summary и details
+            Словарь с details (summary не нужен)
         """
         print(f"🔍 Executing waiting sales query for user: '{user_full_name}'")
-        
-        # Сводная таблица по категориям
-        summary_query = """
-        WITH proscheti_waiting AS (
-            SELECT
-                COUNT(*) AS count,
-                AVG(EXTRACT(EPOCH FROM (NOW() - date_create)) / 86400) AS avg_days
-            FROM (
-                SELECT date_create FROM proscheti_gr_artema
-                WHERE "user" = :user_name
-                  AND status = 'Нужно прикрепить документы'
-                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
-                UNION ALL
-                SELECT date_create FROM proscheti_gr_zheni
-                WHERE "user" = :user_name
-                  AND status = 'Нужно прикрепить документы'
-                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
-            ) combined
-            WHERE date_create IS NOT NULL
-        ),
-        obrazci_waiting AS (
-            SELECT
-                COUNT(*) AS count,
-                AVG(EXTRACT(EPOCH FROM (NOW() - date_create)) / 86400) AS avg_days
-            FROM (
-                SELECT date_create FROM obrazci_gr_artema
-                WHERE "user" = :user_name
-                  AND status = 'Нужно прикрепить документы'
-                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
-                UNION ALL
-                SELECT date_create FROM obrazci_gr_zheni
-                WHERE "user" = :user_name
-                  AND status = 'Нужно прикрепить документы'
-                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
-            ) combined
-            WHERE date_create IS NOT NULL
-        ),
-        proizv_waiting AS (
-            SELECT
-                COUNT(*) AS count,
-                AVG(EXTRACT(EPOCH FROM (NOW() - date_create)) / 86400) AS avg_days
-            FROM (
-                SELECT date_create FROM proizv_gr_artema
-                WHERE "user" = :user_name
-                  AND status = 'Нужно прикрепить документы'
-                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
-                UNION ALL
-                SELECT date_create FROM proizv_gr_zheni
-                WHERE "user" = :user_name
-                  AND status = 'Нужно прикрепить документы'
-                  AND ("user" <> 'Артем Василевский' OR "user" IS NULL)
-            ) combined
-            WHERE date_create IS NOT NULL
-        )
-        SELECT
-            'Просчеты' AS "Категория",
-            COALESCE(p.count, 0) AS "Кол-во",
-            ROUND(COALESCE(p.avg_days, 0)::numeric, 1) AS "Ср. дней"
-        FROM proscheti_waiting p
-        UNION ALL
-        SELECT
-            'Образцы' AS "Категория",
-            COALESCE(o.count, 0) AS "Кол-во",
-            ROUND(COALESCE(o.avg_days, 0)::numeric, 1) AS "Ср. дней"
-        FROM obrazci_waiting o
-        UNION ALL
-        SELECT
-            'Производства' AS "Категория",
-            COALESCE(pr.count, 0) AS "Кол-во",
-            ROUND(COALESCE(pr.avg_days, 0)::numeric, 1) AS "Ср. дней"
-        FROM proizv_waiting pr
-        """
         
         # Детализация задач с task_id, task_name, status и количеством дней ожидания
         details_query = """
@@ -1193,15 +1121,13 @@ class DashboardService:
         """
         
         try:
-            summary = execute_query(summary_query, {"user_name": user_full_name})
             details = execute_query(details_query, {"user_name": user_full_name})
             
             print(f"✅ Waiting sales query executed")
-            print(f"   Summary rows: {len(summary)}")
             print(f"   Details rows: {len(details)}")
             
             return {
-                "summary": summary,
+                "summary": [],  # Не нужна сводная таблица
                 "details": details
             }
         except Exception as e:
